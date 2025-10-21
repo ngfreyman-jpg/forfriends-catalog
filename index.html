@@ -3,91 +3,109 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <title>Каталог ForFriends</title>
 
-  <!-- Telegram Web Apps (для корректной темы/высоты внутри Telegram) -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Встроенный Favicon (вариант A) -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100%25' height='100%25' fill='%23111'/%3E%3Ctext x='50%25' y='55%25' font-size='56' text-anchor='middle' fill='%23777' font-family='system-ui,-apple-system,Segoe UI,Roboto'%3EFF%3C/text%3E%3C/svg%3E">
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
   <style>
-    :root {
-      --bg: #0e0e0f;
-      --card: #17181b;
-      --text: #e8e8ea;
-      --muted: #9aa0a6;
-      --accent: #4f8cff;
-      --accent-2: #7aa2ff;
-      --border: #26272b;
+    :root{
+      --bg: #0f0f10;
+      --card: #17181a;
+      --muted: #868e96;
+      --text: #e9ecef;
+      --accent: #4c8cf5;
+      --btn: #3b82f6;
+      --btn-txt: #fff;
+      --border: #212529;
     }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0; padding: 16px;
-      background: var(--bg); color: var(--text);
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji';
-    }
-    header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    h1 {
-      margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .2px;
+    * { box-sizing: border-box }
+    html, body { height: 100% }
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font: 16px/1.4 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     }
 
-    .tabs { display:flex; gap: 8px; margin: 14px 0 8px; flex-wrap: wrap; }
-    .tab {
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text);
-      padding: 8px 12px; border-radius: 12px;
-      font-size: 13px; cursor: pointer;
-    }
-    .tab.active { background: var(--card); border-color: var(--accent-2); }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 14px;
+    header{
+      padding: 14px 16px 8px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--bg); z-index: 10;
     }
 
-    .card {
-      border: 1px solid var(--border); border-radius: 16px;
-      background: var(--card); overflow: hidden;
+    .tabs{
+      display:flex; gap:8px; padding: 10px 12px 0; flex-wrap: wrap;
+      position: sticky; top: 56px; background: var(--bg); z-index: 9;
+    }
+    .tab{
+      padding: 10px 12px; border-radius: 10px; border:1px solid var(--border);
+      background: transparent; color:var(--text); cursor:pointer;
+    }
+    .tab.active{ background: var(--card); border-color: var(--card) }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(2,minmax(0,1fr));
+      gap: 12px;
+      padding: 12px;
+    }
+    @media (min-width: 600px){
+      .grid{ grid-template-columns: repeat(3,minmax(0,1fr)) }
+    }
+    @media (min-width: 900px){
+      .grid{ grid-template-columns: repeat(4,minmax(0,1fr)) }
+    }
+
+    .card{
+      background: var(--card);
+      border:1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
       display:flex; flex-direction: column;
-      transition: transform .12s ease, border-color .12s ease;
     }
-    .card:hover { transform: translateY(-2px); border-color: var(--accent-2); }
-    .photo {
-      width: 100%; aspect-ratio: 3/4; object-fit: cover; display:block; background:#111;
+    .photo{
+      width:100%; aspect-ratio: 4/5; object-fit: cover; display:block; background:#111;
     }
-    .info { padding: 10px 12px 6px; }
-    .title { font-size: 14px; font-weight: 600; line-height: 1.25; margin: 0 0 6px; }
-    .sku { font-size: 12px; color: var(--muted); }
-    .price { font-size: 15px; font-weight: 600; margin-top: 2px; }
+    .info{ padding: 10px 12px 0 }
+    .title{ font-weight: 600; margin-bottom: 6px }
+    .sku{ color:var(--muted); font-size:13px; margin-bottom: 6px }
+    .price{ font-weight: 600; margin-bottom: 10px }
 
-    .btn {
-      margin: 10px 12px 12px;
-      text-align: center; border-radius: 12px;
-      background: var(--accent); color: #fff; padding: 10px 12px;
-      border: 0; cursor: pointer; font-weight: 600; font-size: 14px;
+    .btn{
+      margin: 0 12px 12px;
+      padding: 12px 12px; border-radius: 10px;
+      background: var(--btn); color: var(--btn-txt);
+      border: none; cursor: pointer; font-weight: 600;
     }
 
-    .empty {
+    .empty{
+      grid-column: 1 / -1; text-align: center; color: var(--muted);
+      padding: 32px 12px;
       border:1px dashed var(--border);
-      color: var(--muted);
-      border-radius: 12px; padding: 20px; text-align: center;
-      grid-column: 1/-1;
+      border-radius: 12px;
+      background: rgba(255,255,255,.02);
     }
   </style>
+
+  <!-- SDK Telegram WebApp (безопасно, даже если не в Telegram) -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <header>
-    <h1>Каталог ForFriends</h1>
-  </header>
+
+  <header>Каталог ForFriends</header>
 
   <div id="tabs" class="tabs"></div>
-  <div id="grid" class="grid"></div>
 
-  <!-- Ваш основной код -->
-  <script defer src="app.js?v=1"></script>
+  <main class="grid" id="grid"></main>
+
+  <!-- Наш JS (без module, чтобы не ловить top-level await) -->
+  <script src="./app.js?v=1" defer></script>
 </body>
 </html>
