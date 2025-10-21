@@ -2,8 +2,8 @@ backend:
   name: github
   repo: ngfreyman-jpg/forfriends-catalog
   branch: main
-  base_url: https://forfriends-oauth.up.railway.app   # твой домен OAuth
-  auth_endpoint: /auth
+  base_url: "https://forfriends-oauth-production.up.railway.app"
+  auth_endpoint: "/auth"
  
   # OAuth-прокси на Railway (заполним в шаге 3)
   base_url: https://YOUR-RAILWAY-OAUTH-APP.railway.app
