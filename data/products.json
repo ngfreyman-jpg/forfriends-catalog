@@ -1,3 +1,12 @@
-{ "items": [
-  { "id": "3020803", "title": "Худи Maison Mihara Yasuhiro MMY3", "price": 4290, "category": "Худи / Зип-худи", "photo": "images/hoodie1.webp", "link": "", "desc": "" }
-]}
+{
+  "items": [
+    {
+      "id": "3020803",
+      "title": "Худи Maison Mihara Yasuhiro MMY3",
+      "price": 4290,
+      "photo": "https://i.imgur.com/xxxxx.jpeg",
+      "category": "Худи",
+      "link": "https://t.me/your_bot?start=3020803"
+    }
+  ]
+}
