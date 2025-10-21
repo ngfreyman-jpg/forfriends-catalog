@@ -1,96 +1,98 @@
-(async () => {
-  // Telegram WebApp (безопасно, если открыто не в ТГ)
+(function () {
+  // Telegram WebApp (мягко и безопасно)
   const tg = window.Telegram?.WebApp;
   try { tg?.ready(); tg?.expand(); } catch (e) {}
 
   const $grid = document.getElementById('grid');
   const $tabs = document.getElementById('tabs');
 
-  // универсальная загрузка JSON (возвращает items[] или [])
-  async function load(path) {
-    try {
-      const r = await fetch(`${path}?v=${Date.now()}`, { cache: 'no-store' });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const data = await r.json();
-      return Array.isArray(data?.items) ? data.items : [];
-    } catch (e) {
-      console.error('load failed:', path, e);
-      return [];
-    }
+  // Универсальная загрузка JSON → возвращает Promise с массивом items либо []
+  function load(path) {
+    return fetch(`${path}?v=${Date.now()}`, { cache: 'no-store' })
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(data => Array.isArray(data?.items) ? data.items : [])
+      .catch(e => {
+        console.error('load failed:', path, e);
+        return [];
+      });
   }
 
-  // грузим товары и категории параллельно
-  const [products, categories] = await Promise.all([
+  // Грузим товары и категории параллельно
+  Promise.all([
     load('./data/products.json'),
     load('./data/categories.json')
-  ]);
+  ]).then(([products, categories]) => {
+    let activeCat = (categories[0] && categories[0].title) ? categories[0].title : 'Все';
 
-  let activeCat = categories[0]?.title || 'Все';
+    renderTabs();
+    renderList();
 
-  renderTabs();
-  renderList();
+    function renderTabs() {
+      $tabs.innerHTML = '';
+      const all = [{ title: 'Все' }, ...categories];
 
-  function renderTabs() {
-    $tabs.innerHTML = '';
-    const all = [{ title: 'Все' }, ...categories];
-
-    all.forEach(c => {
-      const b = document.createElement('button');
-      b.className = 'tab' + (c.title === activeCat ? ' active' : '');
-      b.textContent = c.title;
-      b.onclick = () => { activeCat = c.title; renderTabs(); renderList(); };
-      $tabs.appendChild(b);
-    });
-  }
-
-  function renderList() {
-    $grid.innerHTML = '';
-
-    const list = products.filter(p => activeCat === 'Все' || p.category === activeCat);
-
-    if (list.length === 0) {
-      $grid.innerHTML = `<div class="empty">Тут пока пусто. Добавьте товары в <code>data/products.json</code>.</div>`;
-      return;
+      all.forEach(c => {
+        const b = document.createElement('button');
+        b.className = 'tab' + (c.title === activeCat ? ' active' : '');
+        b.textContent = c.title;
+        b.onclick = () => { activeCat = c.title; renderTabs(); renderList(); };
+        $tabs.appendChild(b);
+      });
     }
 
-    list.forEach(it => {
-      const card = document.createElement('div');
-      card.className = 'card';
+    function renderList() {
+      $grid.innerHTML = '';
 
-      const photo = (it.photo && it.photo.trim())
-        ? it.photo.trim()
-        : 'https://via.placeholder.com/800x1000/111/777?text=Фото';
+      const list = products.filter(p => activeCat === 'Все' || p.category === activeCat);
 
-      card.innerHTML = `
-        <img class="photo" src="${photo}" alt="">
-        <div class="info">
-          <div class="title">${escapeHTML(it.title || '')}</div>
-          <div class="sku">${escapeHTML(it.id || '')}</div>
-          <div class="price">${fmtPrice(it.price)} ₽</div>
-        </div>
-        <button class="btn">Открыть</button>
-      `;
+      if (list.length === 0) {
+        $grid.innerHTML =
+          `<div class="empty">Тут пока пусто. Добавьте товары в <code>data/products.json</code>.</div>`;
+        return;
+      }
 
-      card.querySelector('.btn').onclick = () => {
-        const link = (it.link && it.link.trim()) ? it.link.trim() : '';
-        if (link) {
-          window.open(link, '_blank');
-          try { tg?.HapticFeedback?.impactOccurred('light'); } catch (e) {}
-        }
-      };
+      list.forEach(it => {
+        const card = document.createElement('div');
+        card.className = 'card';
 
-      $grid.appendChild(card);
-    });
-  }
+        const photo = (it.photo && String(it.photo).trim())
+          ? String(it.photo).trim()
+          : 'https://via.placeholder.com/800x1000/111/777?text=Фото';
 
-  // helpers
-  function fmtPrice(v) {
-    const n = Number(v || 0);
-    return n.toLocaleString('ru-RU');
-  }
-  function escapeHTML(s) {
-    return String(s).replace(/[&<>"']/g, m => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-    }[m]));
-  }
+        card.innerHTML = `
+          <img class="photo" src="${photo}" alt="">
+          <div class="info">
+            <div class="title">${escapeHTML(it.title || '')}</div>
+            <div class="sku">${escapeHTML(it.id || '')}</div>
+            <div class="price">${fmtPrice(it.price)} ₽</div>
+          </div>
+          <button class="btn">Открыть</button>
+        `;
+
+        card.querySelector('.btn').onclick = () => {
+          const link = (it.link && String(it.link).trim()) ? String(it.link).trim() : '';
+          if (link) {
+            window.open(link, '_blank');
+            try { tg?.HapticFeedback?.impactOccurred('light'); } catch (e) {}
+          }
+        };
+
+        $grid.appendChild(card);
+      });
+    }
+
+    // helpers внутри замыкания, чтобы не торчали в глобале
+    function fmtPrice(v) {
+      const n = Number(v || 0);
+      return n.toLocaleString('ru-RU');
+    }
+    function escapeHTML(s) {
+      return String(s).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      }[m]));
+    }
+  });
 })();
