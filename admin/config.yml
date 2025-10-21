@@ -1,0 +1,41 @@
+backend:
+  name: github
+  repo: <ngfreyman-jpg>/forfriends-catalog
+  branch: main
+  base_url: https://<ТВОЙ_OAUTH_ДОМЕН>   # добавим на шаге 3 (OAuth-сервис на Railway)
+  auth_endpoint: /auth
+
+site_url: https://<ngfreyman-jpg>.github.io/forfriends-catalog
+display_url: https://<ngfreyman-jpg>.github.io/forfriends-catalog
+
+media_folder: "images"
+public_folder: "/forfriends-catalog/images"
+
+editorial_workflow: true  # все правки через Pull Request
+
+collections:
+  - label: "Каталог"
+    name: "catalog"
+    files:
+      - label: "Товары"
+        name: "products"
+        file: "data/products.json"
+        format: "json"
+        fields:
+          - {label: "Товары", name: "items", widget: "list", fields: [
+              {label:"ID", name:"id", widget:"string"},
+              {label:"Название", name:"title", widget:"string"},
+              {label:"Цена", name:"price", widget:"number"},
+              {label:"Категория", name:"category", widget:"string"},
+              {label:"Фото", name:"photo", widget:"image"},
+              {label:"Ссылка", name:"link", widget:"string", required: false},
+              {label:"Описание", name:"desc", widget:"text", required: false}
+          ]}
+      - label: "Категории"
+        name: "categories"
+        file: "data/categories.json"
+        format: "json"
+        fields:
+          - {label: "Категории", name: "items", widget: "list", fields: [
+              {label:"Название", name:"title", widget:"string"}
+          ]}
