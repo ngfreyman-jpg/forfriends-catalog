@@ -4,68 +4,40 @@ backend:
   branch: main
   base_url: "https://forfriends-oauth-production.up.railway.app"
   auth_endpoint: "/auth"
- 
-  # OAuth-прокси на Railway (заполним в шаге 3)
-  base_url: https://YOUR-RAILWAY-OAUTH-APP.railway.app
-  auth_endpoint: /auth
 
-# Куда грузятся изображения в репе
+# где храним загруженные из админки файлы
 media_folder: "images"
-
-# Как эти файлы доступны на GitHub Pages:
-# (проекты GitHub Pages лежат под /forfriends-catalog)
+# как эти файлы будут доступны на сайте (учитываем имя репозитория)
 public_folder: "/forfriends-catalog/images"
 
-site_url: "https://ngfreyman-jpg.github.io/forfriends-catalog"
-display_url: "https://ngfreyman-jpg.github.io/forfriends-catalog"
-
-editorial_workflow: true
+publish_mode: editorial_workflow
 
 collections:
-  - name: "categories"
-    label: "Категории"
-    label_singular: "Категория"
-    delete: false
-    description: "Список категорий для фильтров на витрине."
-    format: "json"
+  - name: "catalog"
+    label: "Каталог"
     files:
       - file: "data/categories.json"
+        name: "categories"
         label: "Категории"
-        name: "cats"
         fields:
           - label: "Категории"
             name: "items"
             widget: "list"
-            summary: "{{fields.title}}"
-            fields:
-              - { label: "Название", name: "title", widget: "string" }
+            field:
+              { label: "Название", name: "title", widget: "string" }
 
-  - name: "products"
-    label: "Товары"
-    label_singular: "Товар"
-    delete: false
-    format: "json"
-    files:
       - file: "data/products.json"
+        name: "products"
         label: "Товары"
-        name: "prods"
         fields:
           - label: "Товары"
             name: "items"
             widget: "list"
-            summary: "{{fields.title}} — {{fields.price}} ₽ ({{fields.category}})"
             fields:
-              - { label: "ID/Артикул", name: "id", widget: "string" }
+              - { label: "ID", name: "id", widget: "string" }
               - { label: "Название", name: "title", widget: "string" }
-              - { label: "Цена", name: "price", widget: "number", value_type: "int", min: 0 }
-              - label: "Категория"
-                name: "category"
-                widget: "relation"
-                collection: "categories"
-                file: "data/categories.json"
-                search_fields: ["items.*.title"]
-                value_field: "items.*.title"
-                display_fields: ["items.*.title"]
-              - { label: "Фото", name: "photo", widget: "image", allow_multiple: false }
-              - { label: "Ссылка (на бота или страницу)", name: "link", widget: "string", required: false }
+              - { label: "Цена", name: "price", widget: "number", value_type: "int", min: 0, step: 1 }
+              - { label: "Категория", name: "category", widget: "string" }
+              - { label: "Фото", name: "photo", widget: "image", required: false }
+              - { label: "Ссылка", name: "link", widget: "string", required: false }
               - { label: "Описание", name: "desc", widget: "text", required: false }
