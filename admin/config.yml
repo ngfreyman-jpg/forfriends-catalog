@@ -2,7 +2,7 @@ backend:
   name: github
   repo: ngfreyman-jpg/forfriends-catalog
   branch: main
-  base_url: https://forfriends-oauth-production.up.railway.app   # <-- твой домен Railway
+  base_url: https://forfriends-oauth-production.up.railway.app
   auth_endpoint: /auth
 
 site_url: https://ngfreyman-jpg.github.io/forfriends-catalog
