@@ -1,69 +1,38 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Каталог ForFriends</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
-  <style>
-    body {
-      margin: 0;
-      background: #111;
-      color: #fff;
-      font-family: 'Inter', system-ui, sans-serif;
-    }
-    header {
-      text-align: center;
-      padding: 16px 0;
-      font-weight: 600;
-    }
-    .grid {
-      display: grid;
-      gap: 12px;
-      padding: 16px;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    }
-    .card {
-      background: #1a1a1a;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
-    }
-    .photo {
-      width: 100%;
-      aspect-ratio: 3/4;
-      object-fit: cover;
-    }
-    .info { padding: 12px; }
-    .title {
-      font-size: 15px;
-      color: #ddd;
-      margin-bottom: 8px;
-    }
-    .price {
-      font-weight: 700;
-      color: #f5f5f5;
-    }
-    .btn {
-      margin: 12px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      background: #1089ff;
-      color: #fff;
-      text-align: center;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .btn:hover {
-      background: #0a6ed8;
-    }
-  </style>
-</head>
-<body>
-  <header>Каталог ForFriends</header>
-  <div class="grid" id="grid"></div>
 
-  <script src="app.js"></script>
-</body>
-</html>
+  <!-- Telegram Web Apps (для корректной темы/высоты внутри Telegram) -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0e0e0f;
+      --card: #17181b;
+      --text: #e8e8ea;
+      --muted: #9aa0a6;
+      --accent: #4f8cff;
+      --accent-2: #7aa2ff;
+      --border: #26272b;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; padding: 16px;
+      background: var(--bg); color: var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji';
+    }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    h1 {
+      margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .2px;
+    }
+
+    .tabs { display:flex; gap: 8px; margin: 14px 0 8px; flex-wrap: wrap; }
+    .tab {
+      border: 1px solid var(--border);
