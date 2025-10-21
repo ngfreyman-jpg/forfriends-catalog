@@ -43,3 +43,4 @@ Promise.all([
   load('./data/categories.json')
 ]).then(([products, categories]) => {
   let activeCat = categories
+}
