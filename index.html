@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Каталог</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
+  <style>
+    body { margin:0; background:#111; color:#fff; font-family:Inter,system-ui,-apple-system; }
+    header { text-align:center; padding:16px 0 0; font-weight:600; }
+    .grid { display:grid; gap:12px; padding:16px; grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .card { background:#1a1a1a; border-radius:12px; overflow:hidden; }
+    .photo { width:100%; aspect-ratio:3/4; object-fit:cover; background:#222; }
+    .info { padding:10px; }
+    .price { font-weight:700; margin-bottom:4px; }
+    .title { font-size:14px; color:#bbb; line-height:1.25; }
+    .btn { margin:10px; padding:10px; border-radius:10px; background:#2a2a2a; text-align:center; cursor:pointer; }
+    .btn.primary { background:#10b981; color:#000; font-weight:600; }
+  </style>
+</head>
+<body>
+  <header>Каталог</header>
+  <div class="grid" id="grid"></div>
+  <script src="app.js"></script>
+</body>
+</html>
