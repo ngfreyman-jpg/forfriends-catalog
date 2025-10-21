@@ -1,98 +1,45 @@
-(function () {
-  // Telegram WebApp (мягко и безопасно)
-  const tg = window.Telegram?.WebApp;
-  try { tg?.ready(); tg?.expand(); } catch (e) {}
+// Telegram init — безопасно и вне Telegram-клиента
+const tg = window.Telegram?.WebApp;
+try { tg?.ready(); tg?.expand(); } catch (e) { /* ок вне Telegram */ }
 
-  const $grid = document.getElementById('grid');
-  const $tabs = document.getElementById('tabs');
+const $grid = document.getElementById('grid');
+const $tabs = document.getElementById('tabs');
 
-  // Универсальная загрузка JSON → возвращает Promise с массивом items либо []
-  function load(path) {
-    return fetch(`${path}?v=${Date.now()}`, { cache: 'no-store' })
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then(data => Array.isArray(data?.items) ? data.items : [])
-      .catch(e => {
-        console.error('load failed:', path, e);
-        return [];
-      });
-  }
+// загрузка JSON: всегда вернёт массив items[] (или [])
+function load(path) {
+  return fetch(`${path}?v=${Date.now()}`, { cache: 'no-store' })
+    .then(r => (r.ok ? r.json() : { items: [] }))
+    .then(d => (Array.isArray(d?.items) ? d.items : []))
+    .catch(err => { console.error('load failed', path, err); return []; });
+}
 
-  // Грузим товары и категории параллельно
-  Promise.all([
-    load('./data/products.json'),
-    load('./data/categories.json')
-  ]).then(([products, categories]) => {
-    let activeCat = (categories[0] && categories[0].title) ? categories[0].title : 'Все';
+// Встроенный плейсхолдер для фото (не зависит от сети)
+const PLACEHOLDER =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='800' height='1000'>
+      <rect width='100%' height='100%' fill='#111'/>
+      <text x='50%' y='50%' dy='.35em' text-anchor='middle'
+            fill='#777' font-family='system-ui,-apple-system,Segoe UI,Roboto' font-size='48'>
+        Фото
+      </text>
+    </svg>`
+  );
 
-    renderTabs();
-    renderList();
+// helpers
+function fmtPrice(v) {
+  const n = Number(v || 0);
+  return n.toLocaleString('ru-RU');
+}
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, m => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;'
+  }[m]));
+}
 
-    function renderTabs() {
-      $tabs.innerHTML = '';
-      const all = [{ title: 'Все' }, ...categories];
-
-      all.forEach(c => {
-        const b = document.createElement('button');
-        b.className = 'tab' + (c.title === activeCat ? ' active' : '');
-        b.textContent = c.title;
-        b.onclick = () => { activeCat = c.title; renderTabs(); renderList(); };
-        $tabs.appendChild(b);
-      });
-    }
-
-    function renderList() {
-      $grid.innerHTML = '';
-
-      const list = products.filter(p => activeCat === 'Все' || p.category === activeCat);
-
-      if (list.length === 0) {
-        $grid.innerHTML =
-          `<div class="empty">Тут пока пусто. Добавьте товары в <code>data/products.json</code>.</div>`;
-        return;
-      }
-
-      list.forEach(it => {
-        const card = document.createElement('div');
-        card.className = 'card';
-
-        const photo = (it.photo && String(it.photo).trim())
-          ? String(it.photo).trim()
-          : 'https://via.placeholder.com/800x1000/111/777?text=Фото';
-
-        card.innerHTML = `
-          <img class="photo" src="${photo}" alt="">
-          <div class="info">
-            <div class="title">${escapeHTML(it.title || '')}</div>
-            <div class="sku">${escapeHTML(it.id || '')}</div>
-            <div class="price">${fmtPrice(it.price)} ₽</div>
-          </div>
-          <button class="btn">Открыть</button>
-        `;
-
-        card.querySelector('.btn').onclick = () => {
-          const link = (it.link && String(it.link).trim()) ? String(it.link).trim() : '';
-          if (link) {
-            window.open(link, '_blank');
-            try { tg?.HapticFeedback?.impactOccurred('light'); } catch (e) {}
-          }
-        };
-
-        $grid.appendChild(card);
-      });
-    }
-
-    // helpers внутри замыкания, чтобы не торчали в глобале
-    function fmtPrice(v) {
-      const n = Number(v || 0);
-      return n.toLocaleString('ru-RU');
-    }
-    function escapeHTML(s) {
-      return String(s).replace(/[&<>"']/g, m => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-      }[m]));
-    }
-  });
-})();
+// Старт: грузим товары и категории
+Promise.all([
+  load('./data/products.json'),
+  load('./data/categories.json')
+]).then(([products, categories]) => {
+  let activeCat = categories
