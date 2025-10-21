@@ -1,27 +1,69 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Каталог</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Каталог ForFriends</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap">
   <style>
-    body { margin:0; background:#111; color:#fff; font-family:Inter,system-ui,-apple-system; }
-    header { text-align:center; padding:16px 0 0; font-weight:600; }
-    .grid { display:grid; gap:12px; padding:16px; grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .card { background:#1a1a1a; border-radius:12px; overflow:hidden; }
-    .photo { width:100%; aspect-ratio:3/4; object-fit:cover; background:#222; }
-    .info { padding:10px; }
-    .price { font-weight:700; margin-bottom:4px; }
-    .title { font-size:14px; color:#bbb; line-height:1.25; }
-    .btn { margin:10px; padding:10px; border-radius:10px; background:#2a2a2a; text-align:center; cursor:pointer; }
-    .btn.primary { background:#10b981; color:#000; font-weight:600; }
+    body {
+      margin: 0;
+      background: #111;
+      color: #fff;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    header {
+      text-align: center;
+      padding: 16px 0;
+      font-weight: 600;
+    }
+    .grid {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    .card {
+      background: #1a1a1a;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+    }
+    .photo {
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: cover;
+    }
+    .info { padding: 12px; }
+    .title {
+      font-size: 15px;
+      color: #ddd;
+      margin-bottom: 8px;
+    }
+    .price {
+      font-weight: 700;
+      color: #f5f5f5;
+    }
+    .btn {
+      margin: 12px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: #1089ff;
+      color: #fff;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn:hover {
+      background: #0a6ed8;
+    }
   </style>
 </head>
 <body>
-  <header>Каталог</header>
+  <header>Каталог ForFriends</header>
   <div class="grid" id="grid"></div>
+
   <script src="app.js"></script>
 </body>
 </html>
