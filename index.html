@@ -36,3 +36,58 @@
     .tabs { display:flex; gap: 8px; margin: 14px 0 8px; flex-wrap: wrap; }
     .tab {
       border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      padding: 8px 12px; border-radius: 12px;
+      font-size: 13px; cursor: pointer;
+    }
+    .tab.active { background: var(--card); border-color: var(--accent-2); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--border); border-radius: 16px;
+      background: var(--card); overflow: hidden;
+      display:flex; flex-direction: column;
+      transition: transform .12s ease, border-color .12s ease;
+    }
+    .card:hover { transform: translateY(-2px); border-color: var(--accent-2); }
+    .photo {
+      width: 100%; aspect-ratio: 3/4; object-fit: cover; display:block; background:#111;
+    }
+    .info { padding: 10px 12px 6px; }
+    .title { font-size: 14px; font-weight: 600; line-height: 1.25; margin: 0 0 6px; }
+    .sku { font-size: 12px; color: var(--muted); }
+    .price { font-size: 15px; font-weight: 600; margin-top: 2px; }
+
+    .btn {
+      margin: 10px 12px 12px;
+      text-align: center; border-radius: 12px;
+      background: var(--accent); color: #fff; padding: 10px 12px;
+      border: 0; cursor: pointer; font-weight: 600; font-size: 14px;
+    }
+
+    .empty {
+      border:1px dashed var(--border);
+      color: var(--muted);
+      border-radius: 12px; padding: 20px; text-align: center;
+      grid-column: 1/-1;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Каталог ForFriends</h1>
+  </header>
+
+  <div id="tabs" class="tabs"></div>
+  <div id="grid" class="grid"></div>
+
+  <!-- Ваш основной код -->
+  <script defer src="app.js?v=1"></script>
+</body>
+</html>
