@@ -13,6 +13,14 @@ const CONFIG = {
   tokenKey:  'ff_admin_token',
   tokenTtlHours: 12,
 
+   sync: {
+    baseUrl: 'https://forfriends-sync-production.up.railway.app', // твой домен Railway
+    apiKey:  '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20',             // тот же секрет
+    auto: true,             // автоматическая отправка при каждом изменении
+    timeoutMs: 20000,       // таймаут HTTP
+    debounceMs: 750         // «антидребезг» запросов
+  }
+
   /* --- Пути чтения (каталог читает из этих файлов) --- */
   paths: {
     cats: '../data/categories.json',
