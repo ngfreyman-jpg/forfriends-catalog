@@ -117,9 +117,9 @@ const SYNC_ENABLED = Boolean(
   CONFIG.sync &&
   CONFIG.sync.auto &&
   CONFIG.sync.baseUrl &&
-  CONFIG.sync.baseUrl !== 'CHANGE_ME' &&
+  CONFIG.sync.baseUrl !== 'https://forfriends-sync-production.up.railway.app' &&
   CONFIG.sync.apiKey &&
-  CONFIG.sync.apiKey !== 'CHANGE_ME'
+  CONFIG.sync.apiKey !== '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20'
 );
 
 let syncTimer = null;
