@@ -153,7 +153,7 @@ async function doSync(kind){
   debug(`→ Синхронизация (${kind})…`);
 
   // 1) пробуем /commit
-  let url = endpoint(CONFIG.sync.baseUrl, '/commit');
+  let url = endpoint(CONFIG.sync.baseUrl, '/push');
   let ctl = new AbortController();
   let timer = setTimeout(()=>ctl.abort(), CONFIG.sync.timeoutMs);
   let res;
