@@ -1,37 +1,44 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>ForFriends — Admin</title>
 
-  <!-- На GitHub Pages файл будет по /forfriends-catalog/favicon.ico -->
-  <link rel="icon" href="/forfriends-catalog/favicon.ico">
+  <!-- favicon для GitHub Pages (не критично, но 404 не будет) -->
+  <link rel="icon" href="/forfriends-catalog/favicon.ico"/>
 
   <style>
-    html,body {height:100%;margin:0}
-    body {font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif}
+    html,body{height:100%;margin:0}
+    body{font-family:system-ui,Segoe UI,Roboto,Inter,Arial,sans-serif;background:#111;color:#ddd}
+    #log{max-width:900px;margin:24px auto;padding:12px 16px;border:1px solid #333;border-radius:12px;background:#161616;display:none}
+    .ok{color:#7ee787}.err{color:#ff7b72}.muted{color:#888}
   </style>
 
-  <!-- ВАЖНО: jsDelivr + зафиксированная версия, чтобы не схватывать 3.8.4 -->
-  <script src="https://cdn.jsdelivr.net/npm/decap-cms@3.9.0/dist/decap-cms.js"></script>
-</head>
-<body>
-  <noscript>Для работы админки нужен включённый JavaScript.</noscript>
+  <script>
+    /* Небольшой лог (можно потом убрать) */
+    (function(){
+      const box = document.createElement('div'); box.id='log';
+      document.addEventListener('DOMContentLoaded',()=>document.body.prepend(box));
+      function log(msg, cls){ box.style.display='block'; const d=document.createElement('div'); if(cls)d.className=cls; d.textContent=msg; box.appendChild(d); console.log(msg); }
+      window.__log = log;
+      log('Boot…','muted');
+    })();
+  </script>
 
   <script>
-    // ===== Вариант B — сохраняем токен из hash/postMessage =====
+    // ===== Variant B: токен от OAuth через hash или postMessage =====
     (function () {
       function saveTokenAndReload(token) {
         if (!token) return;
         try {
           localStorage.setItem('decap-cms-user', JSON.stringify({ token, provider: 'github' }));
-        } catch (e) { console.error('Cannot save token:', e); }
+        } catch(e){ __log('Cannot save token: '+e, 'err'); }
         if (location.hash) location.replace(location.href.split('#')[0]); else location.reload();
       }
 
       (function fromHash(){
-        var h = location.hash || '';
+        var h = location.hash||'';
         if (!h) return;
         var m1 = h.match(/(?:^|[#&])access_token=([^&]+)/i);
         if (m1 && m1[1]) return saveTokenAndReload(decodeURIComponent(m1[1]));
@@ -44,28 +51,51 @@
           var token = e.data.split(':').pop().trim();
           return saveTokenAndReload(token);
         }
-        if (typeof e.data === 'string' && e.data[0] === '{') {
-          try {
-            var obj = JSON.parse(e.data);
-            if (obj && obj.token && (!obj.provider || obj.provider === 'github')) {
-              return saveTokenAndReload(obj.token);
-            }
-          } catch(_) {}
+        if (typeof e.data === 'string' && e.data[0]==='{') {
+          try { var obj = JSON.parse(e.data);
+            if (obj && obj.token && (!obj.provider || obj.provider==='github')) return saveTokenAndReload(obj.token);
+          } catch(_){}
         }
       }, false);
     })();
-
-    // ===== ОДИНОЖДЫ инициализируем CMS =====
-    (function initCMSOnce() {
-      if (window.__DECAP_INIT_DONE__) return;
-      window.__DECAP_INIT_DONE__ = true;
-      function doInit() {
-        if (window.CMS && typeof window.CMS.init === 'function') window.CMS.init();
-      }
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', doInit, { once: true });
-      } else { doInit(); }
-    })();
   </script>
-</body>
+
+  <script>
+    // ===== Фолбэк-загрузчик Decap CMS из нескольких источников =====
+    (function loadCMS(urls, i){
+      urls = urls || [
+        // 1) jsDelivr
+        'https://cdn.jsdelivr.net/npm/decap-cms@3.9.0/dist/decap-cms.js',
+        // 2) unpkg
+        'https://unpkg.com/decap-cms@3.9.0/dist/decap-cms.js',
+        // 3) GitHub Raw (может грузиться чуть медленнее, но обычно не блокируется)
+        'https://raw.githubusercontent.com/decaporg/decap-cms/refs/tags/v3.9.0/packages/decap-cms/dist/decap-cms.js'
+      ];
+      i = i || 0;
+      if (i >= urls.length) { __log('All CMS CDNs failed','err'); return; }
+
+      var url = urls[i] + (urls[i].includes('?')?'&':'?') + 'v=390'; // cache-buster
+      __log('Loading CMS: '+url, 'muted');
+
+      var s = document.createElement('script');
+      s.src = url;
+      s.async = true;
+      s.onload = function(){ __log('CMS loaded: '+url,'ok'); initCMS(); };
+      s.onerror = function(){ __log('Failed: '+url,'err'); s.remove(); loadCMS(urls, i+1); };
+      document.head.appendChild(s);
+    })();
+
+    function initCMS(){
+      if (!window.CMS || typeof window.CMS.init !== 'function') {
+        __log('CMS object not ready','err');
+        return;
+      }
+      __log('CMS.init()','ok');
+      // При желании можно явно указать конфиг:
+      // window.CMS.init({ configPath: 'config.yml' });
+      window.CMS.init();
+    }
+  </script>
+</head>
+<body></body>
 </html>
