@@ -26,20 +26,6 @@ const CONFIG = {
     cats: '../data/categories.json',
     prods: '../data/products.json'
   },
-
-  /* --- Синхронизация (форвард правок на бэкенд) --- */
-  sync: {
-    // URL твоего Railway-сервиса (forfriends-sync), например:
-    // 'https://forfriends-sync-production.up.railway.app'
-    baseUrl: 'CHANGE_ME',
-    // Твой API-ключ (совпадает с переменной в Railway):
-    apiKey:  'CHANGE_ME',
-    // Включить ли авто-синк (если apiKey/URL не указаны, синк будет отключён автоматически)
-    auto: true,
-    // таймаут и дебаунс
-    timeoutMs: 20000,
-    debounceMs: 750
-  }
 };
 
 // --- Утилиты -------------------------------------------------
