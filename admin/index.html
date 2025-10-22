@@ -4,98 +4,87 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ForFriends — Admin</title>
-
-  <link rel="icon" href="../favicon.ico" />
-
+  <!-- Чтобы не было 404 в консоли -->
+  <link rel="icon" href="../favicon.ico">
   <style>
-    :root { color-scheme: light dark; }
-    html, body { height: 100%; margin: 0; }
-    body {
-      display: grid;
-      place-items: center;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
-      background: #0f1115; color: #e6e6e6;
-    }
-    .splash {
-      display: grid; gap: 12px; place-items: center;
-      opacity: .9;
-    }
-    .splash .logo {
-      font-weight: 800; font-size: 42px; letter-spacing: .5px;
-    }
-    .splash small { opacity: .65 }
-    /* когда CMS смонтировалась, скрываем заставку */
-    body.cms-loaded .splash { display: none; }
+    html,body{height:100%;margin:0}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
   </style>
 </head>
 <body>
-  <div class="splash">
-    <div class="logo">Decap</div>
-    <small>Загрузка панели управления…</small>
-  </div>
-
   <noscript>Для работы админки нужен включённый JavaScript.</noscript>
 
+  <!-- Decap CMS -->
   <script src="https://unpkg.com/decap-cms@3.8.4/dist/decap-cms.js"></script>
 
   <script>
-    
-
+    /**
+     * ВАРИАНТ B — надёжная обработка токена GitHub.
+     * Сохраняем токен (из hash или postMessage), затем перезагружаем URL без hash.
+     */
     (function () {
       function saveTokenAndReload(token) {
         if (!token) return;
         try {
-          localStorage.setItem('decap-cms-user', JSON.stringify({ token: token, provider: 'github' }));
-          location.replace(location.href.split('#')[0]); // убрать хэш и перегрузить
+          localStorage.setItem('decap-cms-user', JSON.stringify({ token, provider: 'github' }));
         } catch (e) {
-          console.error('Cannot save decap token:', e);
+          console.error('Cannot save token:', e);
         }
+        // убираем #... чтобы Decap стартовал «чисто»
+        if (location.hash) location.replace(location.href.split('#')[0]);
+        else location.reload();
       }
 
-      (function catchTokenFromHash() {
-        var hash = location.hash || "";
-        if (!hash) return;
+      // 1) token из #access_token=... или #authorization=github:success:...
+      (function fromHash() {
+        var h = location.hash || '';
+        if (!h) return;
 
-        var m1 = hash.match(/(?:^|[#&])access_token=([^&]+)/i);
-        if (m1 && m1[1]) {
-          var token = decodeURIComponent(m1[1]);
-          saveTokenAndReload(token);
-          return;
-        }
+        var m1 = h.match(/(?:^|[#&])access_token=([^&]+)/i);
+        if (m1 && m1[1]) return saveTokenAndReload(decodeURIComponent(m1[1]));
 
-        // #authorization=github:success:gho_xxx...
-        var m2 = hash.match(/authorization=github:success:([^&]+)/i);
-        if (m2 && m2[1]) {
-          saveTokenAndReload(decodeURIComponent(m2[1]));
-          return;
-        }
+        var m2 = h.match(/authorization=github:success:([^&]+)/i);
+        if (m2 && m2[1]) return saveTokenAndReload(decodeURIComponent(m2[1]));
       })();
 
+      // 2) token из postMessage (попап)
       window.addEventListener('message', function (e) {
-        if (typeof e.data !== 'string') return;
-
-        if (e.data.startsWith('authorization:github:success:')) {
+        if (typeof e.data === 'string' && e.data.startsWith('authorization:github:success:')) {
           var token = e.data.split(':').pop().trim();
-          saveTokenAndReload(token);
+          return saveTokenAndReload(token);
         }
-
-        try {
-          var obj = null;
-          if (e.data[0] === '{') obj = JSON.parse(e.data);
-          if (obj && obj.token && (obj.provider === 'github' || !obj.provider)) {
-            saveTokenAndReload(obj.token);
-          }
-        } catch (_) {}
+        if (typeof e.data === 'string' && e.data[0] === '{') {
+          try {
+            var obj = JSON.parse(e.data);
+            if (obj && obj.token && (!obj.provider || obj.provider === 'github')) {
+              return saveTokenAndReload(obj.token);
+            }
+          } catch (_) {}
+        }
       }, false);
     })();
 
-    document.addEventListener('DOMContentLoaded', function () {
-      if (window.CMS && typeof window.CMS.init === 'function') {
-        window.CMS.init();
+    /**
+     * Инициализация CMS (без каких-либо лишних DOM-манипуляций).
+     * Защита от двойной инициализации — некоторые браузеры
+     * могут триггерить скрипт повторно.
+     */
+    (function initCMSOnce() {
+      if (window.__DECAP_INIT_DONE__) return;
+      window.__DECAP_INIT_DONE__ = true;
 
-        setTimeout(function(){ document.body.classList.add('cms-loaded'); }, 600);
+      function doInit() {
+        if (!(window.CMS && typeof window.CMS.init === 'function')) return;
+        // Decap сам прочитает /admin/config.yml
+        window.CMS.init();
       }
-    });
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', doInit, { once: true });
+      } else {
+        doInit();
+      }
+    })();
   </script>
 </body>
 </html>
