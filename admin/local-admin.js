@@ -1,35 +1,32 @@
 /* ====== Локальная админка + РУЧНОЙ синк на Railway ======
- * Что делает:
- * - простая авторизация (username + SHA-256("username:password:pepper"))
- * - читает каталог из /data/*.json
- * - изменения копятся локально; отправка — только по кнопке «Внести изменения»
- * - отправляет POST на {baseUrl}/push с categories/products (items[])
- *
- * Заполни CONFIG.sync.baseUrl и CONFIG.sync.apiKey.
- * baseUrl: публичный домен Railway (напр. https://forfriends-sync-production.up.railway.app)
- * apiKey : тот же API_KEY, что лежит в переменных Railway.
+ * - Авторизация: username + SHA-256("username:password:pepper")
+ * - Каталог читаем из /data/*.json
+ * - Изменения копятся локально; отправка — по кнопке «Внести изменения»
+ * - POST {baseUrl}/push -> {jobId}; затем опрос GET {baseUrl}/status/:id
  */
 
 const CONFIG = {
   // --- авторизация ---
   username: 'forfriends',
-  passHash: 'a841ff9a9a6d1ccc1549f1acded578a2b37cf31813cd0a594ca1f1833b09d09d', // SHA-256 от "username:password:pepper"
+  passHash: 'a841ff9a9a6d1ccc1549f1acded578a2b37cf31813cd0a594ca1f1833b09d09d',
   pepper:   'ForFriends#Pepper-2025',
   tokenKey: 'ff_admin_token',
   tokenTtlHours: 12,
 
-  // --- откуда читаем текущие данные каталога ---
+  // --- источники данных каталога ---
   paths: {
     cats: '../data/categories.json',
     prods: '../data/products.json',
   },
 
-  // --- куда шлём изменения ---
+  // --- настройки синка ---
   sync: {
-    baseUrl: 'https://forfriends-sync-production.up.railway.app', // ← замени на свой домен при необходимости
-    apiKey:  '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20', // ← сюда тот же секрет, что и на Railway
-    auto:    false,        // РУЧНОЙ режим — только по кнопке
-    timeoutMs: 20000,
+    baseUrl: 'https://forfriends-sync-production.up.railway.app', // твой домен Railway
+    apiKey:  '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20', // тот же, что API_KEY на Railway
+    auto:    false,       // РУЧНОЙ режим
+    timeoutMs: 20000,     // таймаут HTTP для /push
+    pollMs:   1500,       // шаг опроса /status
+    totalTimeoutMs: 180000 // общий таймаут ожидания коммита (3 мин)
   },
 };
 
@@ -53,6 +50,8 @@ async function safeJson(url){
     return Array.isArray(j?.items) ? j.items : [];
   }catch(e){ console.warn('load fail', url, e); return []; }
 }
+const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
+const trimBase = (u)=> u.replace(/\/+$/,'');
 
 /* ===================== Авторизация ===================== */
 function setToken(hours=CONFIG.tokenTtlHours){
@@ -73,11 +72,8 @@ async function verifyLogin(login, pass){
 }
 
 /* ===================== Состояние ===================== */
-const state = {
-  cats:  [],
-  prods: [],
-  editId: null, // id товара, который правим
-};
+const state = { cats: [], prods: [], editId: null };
+
 function debugBox(){
   let el = $('#debugBox');
   if (!el){
@@ -195,21 +191,18 @@ function validateProd(p){
   return null;
 }
 
-/* ===================== РУЧНОЙ СИНК ===================== */
-const SYNC_READY = Boolean(CONFIG.sync?.baseUrl && CONFIG.sync?.apiKey);
-
+/* ===================== Модалка синка ===================== */
 function ensureSyncUI(){
-  // Кнопка «Внести изменения»
+  // кнопка
   if (!$('#syncNowBtn')){
     const btn = document.createElement('button');
     btn.id = 'syncNowBtn';
     btn.className = 'btn primary';
     btn.textContent = 'Внести изменения';
-    // стараемся положить в таб «Импорт/Экспорт», иначе — в конец #app
     const io = $('#tab-io') || $('#app') || document.body;
     (io.querySelector('.actions') || io).appendChild(btn);
   }
-  // Модалка
+  // модалка
   if (!$('#syncModal')){
     const wrap = document.createElement('div');
     wrap.id = 'syncModal';
@@ -224,52 +217,107 @@ function ensureSyncUI(){
     document.body.appendChild(wrap);
   }
 }
-function modalShow(text){
-  $('#syncTitle').textContent = text || 'Отправка…';
-  $('#syncMsg').textContent = 'Подождите, изменения применяются…';
+function modalShow(title, msg){
+  $('#syncTitle').textContent = title || 'Отправка…';
+  $('#syncMsg').textContent   = msg   || 'Подождите, изменения применяются…';
   $('#syncSpinner').style.display = '';
   $('#syncCloseBtn').style.display = 'none';
   $('#syncModal').classList.remove('hide');
 }
+function modalSet(msg){ $('#syncMsg').textContent = msg || ''; }
 function modalDone(ok, msg){
   $('#syncTitle').textContent = ok ? 'Готово' : 'Ошибка';
-  $('#syncMsg').textContent = msg || (ok ? 'Изменения внесены.' : 'Не удалось выполнить синк.');
+  $('#syncMsg').textContent   = msg || (ok ? 'Изменения внесены.' : 'Не удалось выполнить синк.');
   $('#syncSpinner').style.display = 'none';
   $('#syncCloseBtn').style.display = '';
 }
 function modalHide(){ $('#syncModal').classList.add('hide'); }
 
-async function doSync(){
-  if (!SYNC_READY){
+/* ===================== РУЧНОЙ СИНК (push + poll status) ===================== */
+async function pushChangesAndWait(){
+  const baseUrl = trimBase(CONFIG.sync.baseUrl||'');
+  const apiKey  = CONFIG.sync.apiKey||'';
+  if (!baseUrl || !apiKey){
     modalDone(false, 'Синхронизация не настроена (baseUrl/apiKey).');
     return;
   }
+  modalShow('Вносим изменения…', 'Создаём задачу на сервере…');
+
   const payload = {
     categories: { items: state.cats },
     products:   { items: state.prods },
     meta: { ts: Date.now(), reason: 'manual' }
   };
-  log('→ POST /push');
-  const ctl = new AbortController();
-  const t   = setTimeout(()=>ctl.abort(), CONFIG.sync.timeoutMs);
+
+  // 1) создаём задачу
+  let jobId = null;
   try{
-    const res = await fetch(CONFIG.sync.baseUrl.replace(/\/+$/,'') + '/push', {
-      method:'POST',
-      headers: { 'Content-Type':'application/json', 'x-api-key': CONFIG.sync.apiKey },
+    const ctl = new AbortController();
+    const t   = setTimeout(()=>ctl.abort(), CONFIG.sync.timeoutMs);
+    const res = await fetch(`${baseUrl}/push`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-api-key': apiKey },
       body: JSON.stringify(payload),
       signal: ctl.signal
     });
     clearTimeout(t);
-    const text = await res.text();
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${text||''}`);
-    log('✓ синк ОК: ' + (text||''));
-    modalDone(true, 'Изменения успешно закоммичены.');
+    if (res.status === 401 || res.status === 403){
+      const txt = await res.text().catch(()=> '');
+      throw new Error(`Доступ запрещён (HTTP ${res.status}). ${txt||''}`);
+    }
+    if (!res.ok){
+      const txt = await res.text().catch(()=> '');
+      throw new Error(`Ошибка /push (HTTP ${res.status}). ${txt||''}`);
+    }
+    const data = await res.json().catch(()=> ({}));
+    jobId = data?.jobId || null;
+    if (!jobId) throw new Error('Сервер не вернул jobId.');
   }catch(e){
-    clearTimeout(t);
-    console.error(e);
-    log('✗ синк FAIL: ' + e.message);
-    modalDone(false, e.message);
+    log('✗ push FAIL: ' + (e.message||e));
+    modalDone(false, e.message||'Ошибка /push');
+    return;
   }
+
+  // 2) опрос статуса
+  modalSet('Задача создана. Ожидайте…');
+  const started = Date.now();
+  let lastState = '';
+
+  while (Date.now() - started < CONFIG.sync.totalTimeoutMs){
+    await sleep(CONFIG.sync.pollMs);
+    try{
+      const r = await fetch(`${baseUrl}/status/${encodeURIComponent(jobId)}`, {
+        headers: { 'x-api-key': apiKey },
+        cache: 'no-store'
+      });
+      if (!r.ok){
+        const t = await r.text().catch(()=> '');
+        throw new Error(`status HTTP ${r.status}: ${t}`);
+      }
+      const st = await r.json();
+      if (st.state !== lastState){
+        lastState = st.state;
+        if (st.state === 'queued')  modalSet('Задача в очереди. Ожидайте…');
+        if (st.state === 'running') modalSet('Выполняем коммит и пуш…');
+      }
+      if (st.state === 'done'){
+        log('✓ sync DONE: ' + (st.commit||''));
+        modalDone(true, 'Готово! Изменения закоммичены.\nGitHub Pages может обновляться 10–60 сек.');
+        return;
+      }
+      if (st.state === 'error'){
+        log('✗ sync ERROR: ' + (st.error||'unknown'));
+        modalDone(false, st.error || 'Ошибка во время коммита.');
+        return;
+      }
+    }catch(e){
+      log('✗ status FAIL: ' + (e.message||e));
+      modalDone(false, e.message||'Ошибка запроса статуса.');
+      return;
+    }
+  }
+
+  modalDone(false, 'Таймаут ожидания (3 мин). Проверь репозиторий вручную.');
 }
 
 /* ===================== UI & boot ===================== */
@@ -284,7 +332,7 @@ async function boot(){
   // вкладки
   $$('.tab').forEach(b=> b.onclick = ()=> switchTab(b.dataset.tab));
 
-  // кнопки
+  // кнопки товаров/категорий
   $('#logoutBtn').onclick = ()=>{ clearToken(); location.reload(); };
 
   $('#addCatBtn').onclick = ()=>{
@@ -302,7 +350,7 @@ async function boot(){
   };
   $('#resetProdBtn').onclick = clearProdForm;
 
-  // импорт/экспорт
+  // импорт/экспорт (локальные файлы)
   $('#fileCats').addEventListener('change', async e=>{
     const f = e.target.files[0]; if (!f) return;
     const j = JSON.parse(await f.text());
@@ -336,13 +384,13 @@ async function boot(){
 
   // ручной синк: кнопка + модалка
   ensureSyncUI();
-  $('#syncNowBtn').onclick = ()=>{ modalShow('Отправка…'); doSync(); };
+  $('#syncNowBtn').onclick = ()=> pushChangesAndWait();
   $('#syncCloseBtn').onclick = modalHide;
 
-  if (!SYNC_READY){
+  if (!CONFIG.sync.baseUrl || !CONFIG.sync.apiKey){
     log('⚠ Синхронизация не настроена: заполните CONFIG.sync.baseUrl и apiKey.');
   }else{
-    log('✓ Ручной синк включён. Используйте кнопку «Внести изменения».');
+    log('✓ Ручной синк включён. Нажимайте «Внести изменения» для коммита.');
   }
 }
 
