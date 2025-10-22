@@ -4,24 +4,20 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ForFriends — Admin</title>
-  <!-- Чтобы не было 404 в консоли -->
+  <!-- чтобы не мигала 404 по favicon -->
   <link rel="icon" href="../favicon.ico">
   <style>
-    html,body{height:100%;margin:0}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    html,body {height:100%;margin:0}
+    body {font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif}
   </style>
+  <!-- Ключевой момент: фиксируем единую версию Decap -->
+  <script src="https://unpkg.com/decap-cms@3.9.0/dist/decap-cms.js"></script>
 </head>
 <body>
   <noscript>Для работы админки нужен включённый JavaScript.</noscript>
 
-  <!-- Decap CMS -->
-  <script src="https://unpkg.com/decap-cms@3.8.4/dist/decap-cms.js"></script>
-
   <script>
-    /**
-     * ВАРИАНТ B — надёжная обработка токена GitHub.
-     * Сохраняем токен (из hash или postMessage), затем перезагружаем URL без hash.
-     */
+    // ===== Вариант B — захват токена и сохранение в localStorage =====
     (function () {
       function saveTokenAndReload(token) {
         if (!token) return;
@@ -30,12 +26,11 @@
         } catch (e) {
           console.error('Cannot save token:', e);
         }
-        // убираем #... чтобы Decap стартовал «чисто»
         if (location.hash) location.replace(location.href.split('#')[0]);
         else location.reload();
       }
 
-      // 1) token из #access_token=... или #authorization=github:success:...
+      // 1) #access_token=... или #authorization=github:success:...
       (function fromHash() {
         var h = location.hash || '';
         if (!h) return;
@@ -47,7 +42,7 @@
         if (m2 && m2[1]) return saveTokenAndReload(decodeURIComponent(m2[1]));
       })();
 
-      // 2) token из postMessage (попап)
+      // 2) postMessage из попапа
       window.addEventListener('message', function (e) {
         if (typeof e.data === 'string' && e.data.startsWith('authorization:github:success:')) {
           var token = e.data.split(':').pop().trim();
@@ -64,19 +59,15 @@
       }, false);
     })();
 
-    /**
-     * Инициализация CMS (без каких-либо лишних DOM-манипуляций).
-     * Защита от двойной инициализации — некоторые браузеры
-     * могут триггерить скрипт повторно.
-     */
+    // ===== Чистая одноразовая инициализация Decap =====
     (function initCMSOnce() {
       if (window.__DECAP_INIT_DONE__) return;
       window.__DECAP_INIT_DONE__ = true;
 
       function doInit() {
-        if (!(window.CMS && typeof window.CMS.init === 'function')) return;
-        // Decap сам прочитает /admin/config.yml
-        window.CMS.init();
+        if (window.CMS && typeof window.CMS.init === 'function') {
+          window.CMS.init(); // config.yml загрузится сам из /admin/
+        }
       }
 
       if (document.readyState === 'loading') {
