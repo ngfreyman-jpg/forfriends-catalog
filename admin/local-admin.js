@@ -27,7 +27,7 @@ const CONFIG = {
   // --- куда шлём изменения ---
   sync: {
     baseUrl: 'https://forfriends-sync-production.up.railway.app', // ← замени на свой домен при необходимости
-    apiKey:  'PASTE_YOUR_API_KEY_HERE', // ← сюда тот же секрет, что и на Railway
+    apiKey:  '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20', // ← сюда тот же секрет, что и на Railway
     auto:    false,        // РУЧНОЙ режим — только по кнопке
     timeoutMs: 20000,
   },
