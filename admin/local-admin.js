@@ -9,7 +9,7 @@ const CONFIG = {
   pepper:  'ForFriends#Pepper-2025',        // «перец» к паролю (оставь/замени)
   tokenKey: 'ff_admin_token',
   tokenTtlHours: 12,
-
+};
 
 // --- Утилиты -------------------------------------------------
 const $ = s => document.querySelector(s);
