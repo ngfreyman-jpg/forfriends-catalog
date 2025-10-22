@@ -27,11 +27,16 @@ const CONFIG = {
   },
 
   // --- куда слать изменения ---
-  sync: {
-    baseUrl: 'https://forfriends-sync-production.up.railway.app', // <-- ВПИШИ СВОЙ ДОМЕН Railway
-    apiKey : '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20',                                          // <-- ВПИШИ СВОЙ API_KEY из Railway
+ sync: {
+    baseUrl: 'https://forfriends-sync-production.up.railway.app',
+    apiKey:  '*** ТВОЙ_API_KEY ***',
+    auto: false,          // ← ВЫКЛЮЧЕНО: только по кнопке
     timeoutMs: 20000,
-    debounceMs: 700
+    debounceMs: 750
+  },
+  paths: {
+    cats: '../data/categories.json',
+    prods: '../data/products.json',
   },
 };
 
@@ -415,4 +420,16 @@ function bindLoginForm(){
 boot().catch(e=>{
   console.error(e);
   alert('Ошибка запуска админки. См. консоль.');
+<button id="syncNowBtn" class="btn primary">Внести изменения</button>
+
+<!-- Модалка прогресса -->
+<div id="syncModal" class="modal hide">
+  <div class="modal-body">
+    <div id="syncTitle">Отправка…</div>
+    <div id="syncMsg" class="muted">Подождите, изменения применяются…</div>
+    <div id="syncSpinner" class="spinner"></div>
+    <button id="syncCloseBtn" class="btn" style="display:none">Закрыть</button>
+  </div>
+</div>
+  
 });
