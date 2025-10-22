@@ -10,9 +10,6 @@ const CONFIG = {
   tokenKey: 'ff_admin_token',
   tokenTtlHours: 12,
 
-  // Временный режим: пока не поменяешь passHash, действует этот пароль:
-  demoPassword: 'FFadmin#2025!'             // ПОМЕНЯЙ СКОРЕЕ!
-};
 
 // --- Утилиты -------------------------------------------------
 const $ = s => document.querySelector(s);
