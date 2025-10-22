@@ -24,7 +24,7 @@ const CONFIG = {
   /* --- Пути чтения (каталог читает из этих файлов) --- */
   paths: {
     cats: '../data/categories.json',
-    prods: '../data/products.json'
+    prods: '../data/products.json',
   },
 };
 
