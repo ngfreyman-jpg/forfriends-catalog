@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ForFriends — Admin</title>
 
-  <!-- (необязательно) фавикон, чтобы не было 404 в консоли -->
   <link rel="icon" href="../favicon.ico" />
 
   <style>
@@ -30,7 +29,6 @@
   </style>
 </head>
 <body>
-  <!-- Заставка до инициализации CMS -->
   <div class="splash">
     <div class="logo">Decap</div>
     <small>Загрузка панели управления…</small>
@@ -38,16 +36,10 @@
 
   <noscript>Для работы админки нужен включённый JavaScript.</noscript>
 
-  <!-- Decap CMS (админка) -->
   <script src="https://unpkg.com/decap-cms@3.8.4/dist/decap-cms.js"></script>
 
   <script>
-    /**
-     * ВАРИАНТ B — «надёжный» ловец токена:
-     * 1) Сохраняем токен из URL фрагмента (#access_token=... или authorization=github:success:...)
-     * 2) Сохраняем токен из postMessage от попапа
-     * После сохранения — обновляем страницу, чтобы CMS «увидела» токен.
-     */
+    
 
     (function () {
       function saveTokenAndReload(token) {
@@ -60,12 +52,10 @@
         }
       }
 
-      // 1) Токен в хэше URL
       (function catchTokenFromHash() {
         var hash = location.hash || "";
         if (!hash) return;
 
-        // #access_token=...&token_type=...
         var m1 = hash.match(/(?:^|[#&])access_token=([^&]+)/i);
         if (m1 && m1[1]) {
           var token = decodeURIComponent(m1[1]);
@@ -81,17 +71,14 @@
         }
       })();
 
-      // 2) Токен из postMessage (попап)
       window.addEventListener('message', function (e) {
         if (typeof e.data !== 'string') return;
 
-        // формат: "authorization:github:success:gho_xxx..."
         if (e.data.startsWith('authorization:github:success:')) {
           var token = e.data.split(':').pop().trim();
           saveTokenAndReload(token);
         }
 
-        // резерв: некоторые провайдеры посылают объект {token, provider}
         try {
           var obj = null;
           if (e.data[0] === '{') obj = JSON.parse(e.data);
@@ -102,15 +89,10 @@
       }, false);
     })();
 
-    /**
-     * Инициализация CMS (используем config.yml рядом с этим файлом).
-     * Decap сам подхватит /admin/config.yml, но явно дернуть тоже ок.
-     */
     document.addEventListener('DOMContentLoaded', function () {
       if (window.CMS && typeof window.CMS.init === 'function') {
-        window.CMS.init(); // load_config_file: true по умолчанию
-        // Помечаем, что CMS смонтировалась — скрываем заставку:
-        // Небольшая задержка, чтобы гарантированно успело смонтироваться.
+        window.CMS.init();
+
         setTimeout(function(){ document.body.classList.add('cms-loaded'); }, 600);
       }
     });
