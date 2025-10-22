@@ -1,49 +1,41 @@
-/* ====== Локальная админка + автосинк на Railway ======
+/* ====== Локальная админка + РУЧНОЙ синк на Railway ======
  * Что делает:
  * - простая авторизация (username + SHA-256("username:password:pepper"))
- * - чтение каталога из /data/*.json (как прежде)
- * - при каждом изменении отправляет POST на Railway:
- *      POST {baseUrl}/commit      (если 404 — пробует {baseUrl}/push)
- *   Бэкенд коммитит и пушит в репо каталога.
+ * - читает каталог из /data/*.json
+ * - изменения копятся локально; отправка — только по кнопке «Внести изменения»
+ * - отправляет POST на {baseUrl}/push с categories/products (items[])
  *
- * Заполни в CONFIG.sync:
- *   baseUrl: 'https://<твой-домен>.up.railway.app'
- *   apiKey : '<тот же API_KEY, что в переменных Railway>'
- * И всё.
+ * Заполни CONFIG.sync.baseUrl и CONFIG.sync.apiKey.
+ * baseUrl: публичный домен Railway (напр. https://forfriends-sync-production.up.railway.app)
+ * apiKey : тот же API_KEY, что лежит в переменных Railway.
  */
 
 const CONFIG = {
-  // --- логин/пароль (пароль хранится как хэш) ---
+  // --- авторизация ---
   username: 'forfriends',
   passHash: 'a841ff9a9a6d1ccc1549f1acded578a2b37cf31813cd0a594ca1f1833b09d09d', // SHA-256 от "username:password:pepper"
   pepper:   'ForFriends#Pepper-2025',
   tokenKey: 'ff_admin_token',
   tokenTtlHours: 12,
 
-  // --- пути чтения (каталог берёт отсюда) ---
+  // --- откуда читаем текущие данные каталога ---
   paths: {
     cats: '../data/categories.json',
     prods: '../data/products.json',
   },
 
-  // --- куда слать изменения ---
- sync: {
-    baseUrl: 'https://forfriends-sync-production.up.railway.app',
-    apiKey:  '*** ТВОЙ_API_KEY ***',
-    auto: false,          // ← ВЫКЛЮЧЕНО: только по кнопке
+  // --- куда шлём изменения ---
+  sync: {
+    baseUrl: 'https://forfriends-sync-production.up.railway.app', // ← замени на свой домен при необходимости
+    apiKey:  'PASTE_YOUR_API_KEY_HERE', // ← сюда тот же секрет, что и на Railway
+    auto:    false,        // РУЧНОЙ режим — только по кнопке
     timeoutMs: 20000,
-    debounceMs: 750
-  },
-  paths: {
-    cats: '../data/categories.json',
-    prods: '../data/products.json',
   },
 };
 
 /* ===================== Утилиты ===================== */
 const $  = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
 
 async function sha256(str){
   const enc = new TextEncoder().encode(str);
@@ -53,26 +45,14 @@ async function sha256(str){
 function escapeHtml(s){return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#039;' }[m]))}
 function escapeAttr(s){return String(s).replace(/"/g,'&quot;')}
 function fmtPrice(n){const x=Number(n||0);return x.toLocaleString('ru-RU')}
-
-function ensureDebugBox(){
-  let box = $('#debugBox');
-  if (!box){
-    box = document.createElement('pre');
-    box.id = 'debugBox';
-    box.style.cssText = 'margin-top:12px;padding:10px;background:#0c0e12;border:1px solid #2b2f3a;border-radius:8px;max-height:220px;overflow:auto;color:#aab4c0;font:12px/1.4 ui-monospace,Consolas';
-    const host = $('#app') || document.body;
-    host.appendChild(box);
-  }
-  return box;
+async function safeJson(url){
+  try{
+    const r = await fetch(`${url}?v=${Date.now()}`, { cache:'no-store' });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json();
+    return Array.isArray(j?.items) ? j.items : [];
+  }catch(e){ console.warn('load fail', url, e); return []; }
 }
-function debug(msg){
-  const box = ensureDebugBox();
-  const t = new Date().toLocaleTimeString();
-  box.textContent = `[${t}] ${msg}\n` + box.textContent;
-}
-
-function endpoint(base, path){ return base.replace(/\/+$/,'') + path; }
-async function readBody(res){ try{ return await res.text(); } catch{ return ''; }}
 
 /* ===================== Авторизация ===================== */
 function setToken(hours=CONFIG.tokenTtlHours){
@@ -81,190 +61,84 @@ function setToken(hours=CONFIG.tokenTtlHours){
 }
 function hasToken(){
   try{
-    const raw = localStorage.getItem(CONFIG.tokenKey);
-    if (!raw) return false;
-    const t = JSON.parse(raw);
-    return Date.now() < t.exp;
+    const raw = localStorage.getItem(CONFIG.tokenKey); if (!raw) return false;
+    const t = JSON.parse(raw); return Date.now() < t.exp;
   }catch{ return false; }
 }
 function clearToken(){ localStorage.removeItem(CONFIG.tokenKey); }
-
 async function verifyLogin(login, pass){
   const base = `${login}:${pass}:${CONFIG.pepper}`;
   const hash = await sha256(base);
   return login === CONFIG.username && hash === CONFIG.passHash;
 }
 
-/* ===================== Данные ===================== */
+/* ===================== Состояние ===================== */
 const state = {
   cats:  [],
   prods: [],
-  editId: null,
+  editId: null, // id товара, который правим
 };
-
-async function safeLoadJson(url){
-  try{
-    const r = await fetch(url, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json();
-    return Array.isArray(j?.items) ? j.items : [];
-  }catch(e){
-    debug(`Не удалось загрузить ${url}: ${e.message}`);
-    return [];
+function debugBox(){
+  let el = $('#debugBox');
+  if (!el){
+    el = document.createElement('pre');
+    el.id = 'debugBox';
+    el.style.cssText = 'margin-top:12px;padding:10px;background:#0b0f14;border:1px solid #263140;border-radius:8px;max-height:220px;overflow:auto;color:#aab4c0;font:12px ui-monospace,Consolas';
+    ($('#app')||document.body).appendChild(el);
   }
+  return el;
+}
+function log(msg){
+  const t = new Date().toLocaleTimeString();
+  debugBox().textContent = `[${t}] ${msg}\n` + debugBox().textContent;
 }
 
+/* ===================== Чтение/рендер ===================== */
 async function loadAll(){
   $('#statusText') && ($('#statusText').textContent = 'Загрузка данных…');
   const [cats, prods] = await Promise.all([
-    safeLoadJson(CONFIG.paths.cats),
-    safeLoadJson(CONFIG.paths.prods),
+    safeJson(CONFIG.paths.cats),
+    safeJson(CONFIG.paths.prods),
   ]);
-  state.cats  = cats;
+  state.cats = cats;
   state.prods = prods;
-  renderCats();
-  renderProdFormOptions();
-  renderProds();
-  $('#statusText') && ($('#statusText').textContent = `Категорий: ${state.cats.length} • Товаров: ${state.prods.length}`);
+  renderCats(); renderProdFormOptions(); renderProds();
+  $('#statusText') && ($('#statusText').textContent = `Категорий: ${cats.length} • Товаров: ${prods.length}`);
 }
 
-/* ===================== Синк на Railway ===================== */
-const SYNC_ENABLED = Boolean(CONFIG.sync?.baseUrl && CONFIG.sync?.apiKey);
-
-let syncTimer = null;
-let syncing   = false;
-
-function scheduleSync(kind){
-  if (!SYNC_ENABLED) return;
-  if (syncTimer) clearTimeout(syncTimer);
-  syncTimer = setTimeout(()=> doSync(kind).catch(err=>{
-    console.error(err);
-    debug(`✗ Синк не удался (${kind}): ${err.message}`);
-  }), CONFIG.sync.debounceMs);
-}
-
-async function doSync(kind){
-  if (!SYNC_ENABLED) return;
-  if (syncing) return;
-  syncing = true;
-
-  const payload = {
-    kind,
-    categories: { items: state.cats },
-    products:   { items: state.prods },
-    meta: { ts: Date.now(), from: 'admin-local' }
-  };
-
-  debug(`→ Синхронизация (${kind})…`);
-
-  // 1) пробуем /commit
-  let url = endpoint(CONFIG.sync.baseUrl, '/push');
-  let ctl = new AbortController();
-  let timer = setTimeout(()=>ctl.abort(), CONFIG.sync.timeoutMs);
-  let res;
-  try{
-    res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type':'application/json',
-        'x-api-key': CONFIG.sync.apiKey
-      },
-      body: JSON.stringify(payload),
-      signal: ctl.signal
-    });
-  }catch(e){
-    clearTimeout(timer);
-    throw new Error('Network error (/commit): '+e.message);
-  }
-  clearTimeout(timer);
-
-  // 2) если /commit нет — пробуем /push
-  if (res.status === 404){
-    debug('Эндпоинт /commit не найден, пробую /push…');
-    url = endpoint(CONFIG.sync.baseUrl, '/push');
-    ctl = new AbortController();
-    timer = setTimeout(()=>ctl.abort(), CONFIG.sync.timeoutMs);
-    try{
-      res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type':'application/json',
-          'x-api-key': CONFIG.sync.apiKey
-        },
-        body: JSON.stringify({
-          categories: { items: state.cats },
-          products:   { items: state.prods },
-          meta: { ts: Date.now(), from: 'admin-local' }
-        }),
-        signal: ctl.signal
-      });
-    }catch(e){
-      clearTimeout(timer);
-      throw new Error('Network error (/push): '+e.message);
-    }
-    clearTimeout(timer);
-  }
-
-  if (!res.ok){
-    const t = await readBody(res);
-    throw new Error(`HTTP ${res.status}: ${t || 'unknown error'}`);
-  }
-
-  const t = await readBody(res);
-  debug(`✓ Синхронизировано (${kind}). ${t ? t.slice(0,200) : ''}`);
-  syncing = false;
-}
-
-/* ===================== Рендер ===================== */
 function renderCats(){
-  const box = $('#catList');
-  box.innerHTML = '';
-  if (!state.cats.length){
-    box.innerHTML = `<div class="empty">Пока нет категорий.</div>`;
-    return;
-  }
-  state.cats.forEach((c, idx)=>{
+  const box = $('#catList'); box.innerHTML = '';
+  if (!state.cats.length){ box.innerHTML = `<div class="empty">Пока нет категорий.</div>`; return; }
+  state.cats.forEach((c, i)=>{
     const row = document.createElement('div');
     row.className = 'item';
     row.innerHTML = `
-      <div class="muted">#${idx+1}</div>
+      <div class="muted">#${i+1}</div>
       <div>${escapeHtml(c.title||'—')}</div>
-      <div><button class="btn secondary" data-act="del">Удалить</button></div>
+      <div><button class="btn secondary" data-del>Удалить</button></div>
     `;
-    row.querySelector('[data-act="del"]').onclick = ()=>{
+    row.querySelector('[data-del]').onclick = ()=>{
       if (confirm(`Удалить категорию «${c.title}»?`)){
-        state.cats.splice(idx,1);
-        renderCats();
-        renderProdFormOptions();
-        scheduleSync('delete-category');
+        state.cats.splice(i,1);
+        renderCats(); renderProdFormOptions();
       }
     };
     box.appendChild(row);
   });
 }
-
 function renderProdFormOptions(){
-  const sel = $('#p_cat');
-  if (!sel) return;
+  const sel = $('#p_cat'); if (!sel) return;
   sel.innerHTML = '';
   state.cats.forEach(c=>{
     const o = document.createElement('option');
-    o.value = c.title;
-    o.textContent = c.title;
-    sel.appendChild(o);
+    o.value = c.title; o.textContent = c.title; sel.appendChild(o);
   });
 }
-
 function renderProds(){
-  const box = $('#prodList');
-  box.innerHTML = '';
-  if (!state.prods.length){
-    box.innerHTML = `<div class="empty">Пока нет товаров.</div>`;
-    return;
-  }
-  state.prods.forEach((p, idx)=>{
-    const row = document.createElement('div');
-    row.className = 'item';
+  const box = $('#prodList'); box.innerHTML = '';
+  if (!state.prods.length){ box.innerHTML = `<div class="empty">Пока нет товаров.</div>`; return; }
+  state.prods.forEach((p, i)=>{
+    const row = document.createElement('div'); row.className = 'item';
     const photo = (p.photo||'').trim();
     row.innerHTML = `
       <img src="${escapeAttr(photo)}" onerror="this.src='https://placehold.co/160x120?text=%D0%A4%D0%BE%D1%82%D0%BE'">
@@ -273,19 +147,14 @@ function renderProds(){
         <div class="muted">${escapeHtml(p.category||'—')} • ${fmtPrice(p.price)} ₽ • ${escapeHtml(p.id||'')}</div>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn secondary" data-act="edit">Править</button>
-        <button class="btn red" data-act="del">Удалить</button>
+        <button class="btn secondary" data-edit>Править</button>
+        <button class="btn red" data-del>Удалить</button>
       </div>
     `;
-    row.querySelector('[data-act="edit"]').onclick = ()=>{
-      fillProdForm(p);
-      state.editId = p.id;
-    };
-    row.querySelector('[data-act="del"]').onclick = ()=>{
+    row.querySelector('[data-edit]').onclick = ()=>{ fillProdForm(p); state.editId = p.id; };
+    row.querySelector('[data-del]').onclick  = ()=>{
       if (confirm(`Удалить товар «${p.title}»?`)){
-        state.prods.splice(idx,1);
-        renderProds();
-        scheduleSync('delete-product');
+        state.prods.splice(i,1); renderProds();
       }
     };
     box.appendChild(row);
@@ -309,13 +178,13 @@ function clearProdForm(){
 }
 function collectProdFromForm(){
   return {
-    id:       $('#p_id').value.trim(),
-    title:    $('#p_title').value.trim(),
-    price:    Number($('#p_price').value||0),
+    id: $('#p_id').value.trim(),
+    title: $('#p_title').value.trim(),
+    price: Number($('#p_price').value||0),
     category: $('#p_cat').value.trim(),
-    photo:    $('#p_photo').value.trim(),
-    link:     $('#p_link').value.trim(),
-    desc:     $('#p_desc').value.trim(),
+    photo: $('#p_photo').value.trim(),
+    link: $('#p_link').value.trim(),
+    desc: $('#p_desc').value.trim(),
   };
 }
 function validateProd(p){
@@ -326,6 +195,84 @@ function validateProd(p){
   return null;
 }
 
+/* ===================== РУЧНОЙ СИНК ===================== */
+const SYNC_READY = Boolean(CONFIG.sync?.baseUrl && CONFIG.sync?.apiKey);
+
+function ensureSyncUI(){
+  // Кнопка «Внести изменения»
+  if (!$('#syncNowBtn')){
+    const btn = document.createElement('button');
+    btn.id = 'syncNowBtn';
+    btn.className = 'btn primary';
+    btn.textContent = 'Внести изменения';
+    // стараемся положить в таб «Импорт/Экспорт», иначе — в конец #app
+    const io = $('#tab-io') || $('#app') || document.body;
+    (io.querySelector('.actions') || io).appendChild(btn);
+  }
+  // Модалка
+  if (!$('#syncModal')){
+    const wrap = document.createElement('div');
+    wrap.id = 'syncModal';
+    wrap.className = 'modal hide';
+    wrap.innerHTML = `
+      <div class="modal-body">
+        <div id="syncTitle">Отправка…</div>
+        <div id="syncMsg" class="muted">Подождите, изменения применяются…</div>
+        <div id="syncSpinner" class="spinner"></div>
+        <button id="syncCloseBtn" class="btn" style="display:none">Закрыть</button>
+      </div>`;
+    document.body.appendChild(wrap);
+  }
+}
+function modalShow(text){
+  $('#syncTitle').textContent = text || 'Отправка…';
+  $('#syncMsg').textContent = 'Подождите, изменения применяются…';
+  $('#syncSpinner').style.display = '';
+  $('#syncCloseBtn').style.display = 'none';
+  $('#syncModal').classList.remove('hide');
+}
+function modalDone(ok, msg){
+  $('#syncTitle').textContent = ok ? 'Готово' : 'Ошибка';
+  $('#syncMsg').textContent = msg || (ok ? 'Изменения внесены.' : 'Не удалось выполнить синк.');
+  $('#syncSpinner').style.display = 'none';
+  $('#syncCloseBtn').style.display = '';
+}
+function modalHide(){ $('#syncModal').classList.add('hide'); }
+
+async function doSync(){
+  if (!SYNC_READY){
+    modalDone(false, 'Синхронизация не настроена (baseUrl/apiKey).');
+    return;
+  }
+  const payload = {
+    categories: { items: state.cats },
+    products:   { items: state.prods },
+    meta: { ts: Date.now(), reason: 'manual' }
+  };
+  log('→ POST /push');
+  const ctl = new AbortController();
+  const t   = setTimeout(()=>ctl.abort(), CONFIG.sync.timeoutMs);
+  try{
+    const res = await fetch(CONFIG.sync.baseUrl.replace(/\/+$/,'') + '/push', {
+      method:'POST',
+      headers: { 'Content-Type':'application/json', 'x-api-key': CONFIG.sync.apiKey },
+      body: JSON.stringify(payload),
+      signal: ctl.signal
+    });
+    clearTimeout(t);
+    const text = await res.text();
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${text||''}`);
+    log('✓ синк ОК: ' + (text||''));
+    modalDone(true, 'Изменения успешно закоммичены.');
+  }catch(e){
+    clearTimeout(t);
+    console.error(e);
+    log('✗ синк FAIL: ' + e.message);
+    modalDone(false, e.message);
+  }
+}
+
+/* ===================== UI & boot ===================== */
 function switchTab(name){
   $$('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
   $('#tab-cats' ).classList.toggle('hide', name!=='cats');
@@ -333,7 +280,6 @@ function switchTab(name){
   $('#tab-io'   ).classList.toggle('hide', name!=='io');
 }
 
-/* ===================== Инициализация ===================== */
 async function boot(){
   // вкладки
   $$('.tab').forEach(b=> b.onclick = ()=> switchTab(b.dataset.tab));
@@ -342,49 +288,33 @@ async function boot(){
   $('#logoutBtn').onclick = ()=>{ clearToken(); location.reload(); };
 
   $('#addCatBtn').onclick = ()=>{
-    const t = $('#catTitle').value.trim();
-    if (!t) return;
-    state.cats.push({ title: t });
-    $('#catTitle').value = '';
-    renderCats();
-    renderProdFormOptions();
-    scheduleSync('add-category');
+    const t = $('#catTitle').value.trim(); if (!t) return;
+    state.cats.push({ title:t }); $('#catTitle').value = '';
+    renderCats(); renderProdFormOptions();
   };
 
   $('#saveProdBtn').onclick = ()=>{
     const p = collectProdFromForm();
-    const err = validateProd(p);
-    if (err) return alert(err);
-
+    const err = validateProd(p); if (err) return alert(err);
     const i = state.prods.findIndex(x=>x.id===state.editId);
     if (i>=0) state.prods[i] = p; else state.prods.push(p);
-    clearProdForm();
-    renderProds();
-    scheduleSync('save-product');
+    clearProdForm(); renderProds();
   };
   $('#resetProdBtn').onclick = clearProdForm;
 
-  // импорт из файлов
+  // импорт/экспорт
   $('#fileCats').addEventListener('change', async e=>{
     const f = e.target.files[0]; if (!f) return;
     const j = JSON.parse(await f.text());
     state.cats = Array.isArray(j?.items) ? j.items : [];
-    renderCats(); renderProdFormOptions();
-    debug('Импортированы categories.json из файла');
-    scheduleSync('import-categories');
+    renderCats(); renderProdFormOptions(); log('Импортирован categories.json');
   });
   $('#fileProds').addEventListener('change', async e=>{
     const f = e.target.files[0]; if (!f) return;
     const j = JSON.parse(await f.text());
     state.prods = Array.isArray(j?.items) ? j.items : [];
-    renderProds();
-    debug('Импортированы products.json из файла');
-    scheduleSync('import-products');
+    renderProds(); log('Импортирован products.json');
   });
-
-  // ручной триггер (если есть кнопка)
-  const manual = $('#syncNowBtn');
-  if (manual) manual.onclick = ()=> doSync('manual').catch(e=>{ console.error(e); alert('Синк не удался. См. консоль.'); });
 
   // авторизация
   if (hasToken()){
@@ -394,42 +324,26 @@ async function boot(){
   }else{
     $('#loginCard').classList.remove('hide');
     $('#app').classList.add('hide');
-    bindLoginForm();
+    const form = $('#loginForm');
+    const err  = $('#loginErr');
+    form.onsubmit = async (e)=>{
+      e.preventDefault(); err.classList.add('hide');
+      const ok = await verifyLogin($('#login').value.trim(), $('#password').value);
+      if (!ok){ err.classList.remove('hide'); return; }
+      setToken(); location.reload();
+    };
   }
 
-  if (!SYNC_ENABLED){
-    debug('⚠ Синхронизация отключена: укажи CONFIG.sync.baseUrl и CONFIG.sync.apiKey.');
+  // ручной синк: кнопка + модалка
+  ensureSyncUI();
+  $('#syncNowBtn').onclick = ()=>{ modalShow('Отправка…'); doSync(); };
+  $('#syncCloseBtn').onclick = modalHide;
+
+  if (!SYNC_READY){
+    log('⚠ Синхронизация не настроена: заполните CONFIG.sync.baseUrl и apiKey.');
   }else{
-    debug('✓ Синк включён. Изменения будут коммититься в репозиторий.');
+    log('✓ Ручной синк включён. Используйте кнопку «Внести изменения».');
   }
 }
 
-function bindLoginForm(){
-  const form = $('#loginForm');
-  const err  = $('#loginErr');
-  form.onsubmit = async (e)=>{
-    e.preventDefault();
-    err.classList.add('hide');
-    const ok = await verifyLogin($('#login').value.trim(), $('#password').value);
-    if (!ok){ err.classList.remove('hide'); return; }
-    setToken();
-    location.reload();
-  };
-}
-
-boot().catch(e=>{
-  console.error(e);
-  alert('Ошибка запуска админки. См. консоль.');
-<button id="syncNowBtn" class="btn primary">Внести изменения</button>
-
-<!-- Модалка прогресса -->
-<div id="syncModal" class="modal hide">
-  <div class="modal-body">
-    <div id="syncTitle">Отправка…</div>
-    <div id="syncMsg" class="muted">Подождите, изменения применяются…</div>
-    <div id="syncSpinner" class="spinner"></div>
-    <button id="syncCloseBtn" class="btn" style="display:none">Закрыть</button>
-  </div>
-</div>
-  
-});
+boot().catch(e=>{ console.error(e); alert('Ошибка запуска админки. См. консоль.'); });
