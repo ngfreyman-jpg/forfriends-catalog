@@ -13,5 +13,17 @@
   <body>
     <!-- Decap CMS -->
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+
+    <script>
+  // Автосохранение токена от OAuth-попапа в LocalStorage
+  window.addEventListener('message', function (e) {
+    if (typeof e.data === 'string' && e.data.startsWith('authorization:github:success:')) {
+      var token = e.data.split(':').pop().trim();
+      localStorage.setItem('decap-cms-user', JSON.stringify({ token: token, provider: 'github' }));
+      location.replace(location.href);
+    }
+  });
+</script>
+
   </body>
 </html>
