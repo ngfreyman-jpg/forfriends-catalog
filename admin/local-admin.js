@@ -5,7 +5,7 @@
 
 const CONFIG = {
   username: 'forfriends',                   // ЛОГИН
-  passHash: '848f9540e611b3a3edb0c1827bf0a095a79f222c7509445ed6a66548b478e365',                    // ХЭШ (SHA-256 от "username:password:pepper")
+  passHash: 'a841ff9a9a6d1ccc1549f1acded578a2b37cf31813cd0a594ca1f1833b09d09d',                    // ХЭШ (SHA-256 от "username:password:pepper")
   pepper:  'ForFriends#Pepper-2025',        // «перец» к паролю (оставь/замени)
   tokenKey: 'ff_admin_token',
   tokenTtlHours: 12,
