@@ -4,6 +4,8 @@ backend:
   branch: main
   base_url: https://forfriends-oauth-production.up.railway.app
   auth_endpoint: /auth
+site_url: https://ngfreyman-jpg.github.io/forfriends-catalog
+display_url: https://ngfreyman-jpg.github.io/forfriends-catalog
 
 # где храним загруженные из админки файлы
 media_folder: "images"
