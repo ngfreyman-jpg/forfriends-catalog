@@ -1,19 +1,43 @@
-/* ====== Локальная авторизация + простая админка ======
- * ВНИМАНИЕ: это клиентская «дверца». Для твоей задачи ок.
- * Поменяй логин/пароль ниже (см. CONFIG).
+/* ====== Локальная авторизация + простая админка (с авто-синком) ======
+ * 1) Локальная авторизация по username + SHA-256("username:password:pepper")
+ * 2) Все изменения (категории/товары) автоматически отправляются на sync-сервис,
+ *    который коммитит/пушит в репозиторий каталога (через Railway).
+ * 3) Импорт/экспорт json по-прежнему доступны.
  */
+
 const CONFIG = {
-  username: 'forfriends',                   // ЛОГИН
-  passHash: 'a841ff9a9a6d1ccc1549f1acded578a2b37cf31813cd0a594ca1f1833b09d09d', // SHA-256 от "username:password:pepper"
-  pepper:  'ForFriends#Pepper-2025',        // перец
-  tokenKey: 'ff_admin_token',
+  /* --- Логин --- */
+  username:  'forfriends', // ЛОГИН
+  passHash:  'a841ff9a9a6d1ccc1549f1acded578a2b37cf31813cd0a594ca1f1833b09d09d', // SHA-256 от "username:password:pepper"
+  pepper:    'ForFriends#Pepper-2025',
+  tokenKey:  'ff_admin_token',
   tokenTtlHours: 12,
+
+  /* --- Пути чтения (каталог читает из этих файлов) --- */
+  paths: {
+    cats: '../data/categories.json',
+    prods: '../data/products.json'
+  },
+
+  /* --- Синхронизация (форвард правок на бэкенд) --- */
+  sync: {
+    // URL твоего Railway-сервиса (forfriends-sync), например:
+    // 'https://forfriends-sync-production.up.railway.app'
+    baseUrl: 'CHANGE_ME',
+    // Твой API-ключ (совпадает с переменной в Railway):
+    apiKey:  'CHANGE_ME',
+    // Включить ли авто-синк (если apiKey/URL не указаны, синк будет отключён автоматически)
+    auto: true,
+    // таймаут и дебаунс
+    timeoutMs: 20000,
+    debounceMs: 750
+  }
 };
 
 // --- Утилиты -------------------------------------------------
 const $ = s => document.querySelector(s);
-const $$ = (s,root=document) => Array.from(root.querySelectorAll(s));
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 const toBlobURL = (obj, name) => {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json;charset=utf-8' });
   const a = document.createElement('a');
@@ -26,12 +50,22 @@ const toBlobURL = (obj, name) => {
 async function sha256(str) {
   const enc = new TextEncoder().encode(str);
   const digest = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]))}
+function escapeAttr(s){return String(s).replace(/"/g,'&quot;')}
+function fmtPrice(n){const x=Number(n||0);return x.toLocaleString('ru-RU')}
+
+function debug(msg) {
+  const box = $('#debugBox'); if (!box) return;
+  const t = new Date().toLocaleTimeString();
+  box.textContent = `[${t}] ${msg}\n` + box.textContent;
 }
 
 // --- Авторизация ---------------------------------------------
-function setToken(hours=CONFIG.tokenTtlHours) {
-  const t = { iat: Date.now(), exp: Date.now() + hours*3600*1000 };
+function setToken(hours = CONFIG.tokenTtlHours) {
+  const t = { iat: Date.now(), exp: Date.now() + hours * 3600 * 1000 };
   localStorage.setItem(CONFIG.tokenKey, JSON.stringify(t));
 }
 function hasToken() {
@@ -47,28 +81,7 @@ function clearToken(){ localStorage.removeItem(CONFIG.tokenKey); }
 async function verifyLogin(login, pass) {
   const base = `${login}:${pass}:${CONFIG.pepper}`;
   const hash = await sha256(base);
-
-  if (CONFIG.passHash && CONFIG.passHash !== 'CHANGE_ME') {
-    return login === CONFIG.username && hash === CONFIG.passHash;
-  } else {
-    // Временный режим: работает демо-пароль (видно в коде!)
-    const demoOk = login === CONFIG.username && pass === CONFIG.demoPassword;
-    if (demoOk) {
-      console.warn('%cВНИМАНИЕ','color:#fff;background:#c0392b;padding:2px 6px;border-radius:4px',
-        'Вы используете ВРЕМЕННЫЙ пароль из кода. Сгенерируйте свой hash и замените CONFIG.passHash.');
-      console.info('Как сгенерировать hash:\n', `
-(async ()=>{
-  const user='${CONFIG.username}';
-  const pass='ВашПароль!';
-  const pepper='${CONFIG.pepper}';
-  const data = user+':'+pass+':'+pepper;
-  const enc = new TextEncoder().encode(data);
-  const h = await crypto.subtle.digest('SHA-256', enc);
-  console.log(Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join(''));
-})();`);
-    }
-    return demoOk;
-  }
+  return login === CONFIG.username && hash === CONFIG.passHash;
 }
 
 // --- Данные ---------------------------------------------------
@@ -78,11 +91,7 @@ const state = {
   editId: null,        // id редактируемого товара
 };
 
-const paths = {
-  cats: '../data/categories.json',
-  prods: '../data/products.json'
-};
-
+// Читаем то, что сейчас опубликовано в каталоге:
 async function safeLoadJson(url) {
   try {
     const r = await fetch(url, { cache: 'no-store' });
@@ -98,8 +107,8 @@ async function safeLoadJson(url) {
 async function loadAll() {
   $('#statusText').textContent = 'Загрузка данных…';
   const [cats, prods] = await Promise.all([
-    safeLoadJson(paths.cats),
-    safeLoadJson(paths.prods)
+    safeLoadJson(CONFIG.paths.cats),
+    safeLoadJson(CONFIG.paths.prods)
   ]);
   state.cats = cats;
   state.prods = prods;
@@ -109,6 +118,73 @@ async function loadAll() {
   $('#statusText').textContent = `Категорий: ${state.cats.length} • Товаров: ${state.prods.length}`;
 }
 
+// --- Синхронизация с backend ---------------------------------
+const SYNC_ENABLED = Boolean(
+  CONFIG.sync &&
+  CONFIG.sync.auto &&
+  CONFIG.sync.baseUrl &&
+  CONFIG.sync.baseUrl !== 'CHANGE_ME' &&
+  CONFIG.sync.apiKey &&
+  CONFIG.sync.apiKey !== 'CHANGE_ME'
+);
+
+let syncTimer = null;
+let lastSyncPayload = null;
+let syncing = false;
+
+function scheduleSync(reason = 'change') {
+  if (!SYNC_ENABLED) return; // молча выходим, если не сконфигурировано
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => doSync(reason).catch(err => {
+    console.error(err);
+    debug(`Синхронизация не удалась: ${err.message}`);
+  }), CONFIG.sync.debounceMs);
+}
+
+async function doSync(reason = 'manual') {
+  if (!SYNC_ENABLED) return;
+  if (syncing) return; // простая защита от параллельных вызовов
+  syncing = true;
+
+  try {
+    const payload = {
+      categories: { items: state.cats },
+      products:   { items: state.prods },
+      meta: { reason, ts: Date.now() }
+    };
+    lastSyncPayload = payload;
+
+    debug('Синхронизация…');
+    const ctl = new AbortController();
+    const timeout = setTimeout(() => ctl.abort(), CONFIG.sync.timeoutMs);
+
+    const res = await fetch(`${CONFIG.sync.baseUrl.replace(/\/+$/,'')}/push`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CONFIG.sync.apiKey
+      },
+      body: JSON.stringify(payload),
+      signal: ctl.signal
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      const txt = await safeText(res);
+      throw new Error(`HTTP ${res.status}: ${txt||'unknown error'}`);
+    }
+    const data = await res.json().catch(()=> ({}));
+    debug(`✓ Синхронизировано. ${data.commit || ''}`);
+  } finally {
+    syncing = false;
+  }
+}
+
+async function safeText(r){
+  try { return await r.text(); } catch { return ''; }
+}
+
+// --- Рендер и UI ---------------------------------------------
 function renderCats() {
   const box = $('#catList');
   box.innerHTML = '';
@@ -131,6 +207,7 @@ function renderCats() {
         state.cats.splice(idx,1);
         renderCats();
         renderProdFormOptions();
+        scheduleSync('delete-category');
       }
     };
     box.appendChild(row);
@@ -160,7 +237,7 @@ function renderProds() {
     row.className = 'item';
     const photo = (p.photo&&p.photo.trim())||'';
     row.innerHTML = `
-      <img src="${escapeAttr(photo)||''}" onerror="this.src='https://via.placeholder.com/160x120?text=Фото'">
+      <img src="${escapeAttr(photo)||''}" onerror="this.src='https://placehold.co/160x120?text=%D0%A4%D0%BE%D1%82%D0%BE'">
       <div>
         <div><strong>${escapeHtml(p.title||'—')}</strong></div>
         <div class="muted">${escapeHtml(p.category||'—')} • ${fmtPrice(p.price)} ₽ • ${escapeHtml(p.id||'')}</div>
@@ -178,6 +255,7 @@ function renderProds() {
       if (confirm(`Удалить товар «${p.title}»?`)) {
         state.prods.splice(idx,1);
         renderProds();
+        scheduleSync('delete-product');
       }
     };
     box.appendChild(row);
@@ -226,23 +304,12 @@ function validateProd(p) {
   return null;
 }
 
-// --- Рендер и UI ---------------------------------------------
 function switchTab(name) {
   $$('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
   $('#tab-cats').classList.toggle('hide', name!=='cats');
   $('#tab-goods').classList.toggle('hide', name!=='goods');
   $('#tab-io').classList.toggle('hide', name!=='io');
 }
-
-function debug(msg) {
-  const box = $('#debugBox'); if (!box) return;
-  const t = new Date().toLocaleTimeString();
-  box.textContent = `[${t}] ${msg}\n` + box.textContent;
-}
-
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]))}
-function escapeAttr(s){return String(s).replace(/"/g,'&quot;')}
-function fmtPrice(n){const x=Number(n||0);return x.toLocaleString('ru-RU')}
 
 // --- Инициализация -------------------------------------------
 async function boot() {
@@ -251,6 +318,7 @@ async function boot() {
 
   // Кнопки
   $('#logoutBtn').onclick = () => { clearToken(); location.reload(); };
+
   $('#addCatBtn').onclick = () => {
     const t = $('#catTitle').value.trim();
     if (!t) return;
@@ -258,6 +326,7 @@ async function boot() {
     $('#catTitle').value = '';
     renderCats();
     renderProdFormOptions();
+    scheduleSync('add-category');
   };
 
   $('#saveProdBtn').onclick = () => {
@@ -266,11 +335,25 @@ async function boot() {
     if (err) return alert(err);
 
     const idx = state.prods.findIndex(x=>x.id===state.editId);
-    if (idx >= 0) state.prods[idx] = p; else state.prods.push(p);
+    if (idx >= 0) {
+      state.prods[idx] = p;
+    } else {
+      state.prods.push(p);
+    }
     clearProdForm();
     renderProds();
+    scheduleSync('save-product');
   };
+
   $('#resetProdBtn').onclick = clearProdForm;
+
+  // Ручной запуск синка (кнопка «Сохранить на сайт», если есть)
+  const manualBtn = $('#syncNowBtn');
+  if (manualBtn) {
+    manualBtn.onclick = () => doSync('manual').catch(e=>{
+      console.error(e); alert('Синхронизация не удалась. См. консоль.');
+    });
+  }
 
   // Импорт локальных файлов
   $('#fileCats').addEventListener('change', async e=>{
@@ -279,6 +362,7 @@ async function boot() {
     state.cats = Array.isArray(json?.items)? json.items : [];
     renderCats(); renderProdFormOptions();
     debug('Импортированы categories.json из файла.');
+    scheduleSync('import-categories');
   });
   $('#fileProds').addEventListener('change', async e=>{
     const f = e.target.files[0]; if (!f) return;
@@ -286,10 +370,11 @@ async function boot() {
     state.prods = Array.isArray(json?.items)? json.items : [];
     renderProds();
     debug('Импортированы products.json из файла.');
+    scheduleSync('import-products');
   });
 
-  // Экспорт
-  $('#dlCatsBtn').onclick = () => toBlobURL({ items: state.cats }, 'categories.json');
+  // Экспорт (в файл)
+  $('#dlCatsBtn').onclick  = () => toBlobURL({ items: state.cats },  'categories.json');
   $('#dlProdsBtn').onclick = () => toBlobURL({ items: state.prods }, 'products.json');
 
   // Авторизация
@@ -302,16 +387,15 @@ async function boot() {
     $('#app').classList.add('hide');
     bindLoginForm();
   }
+
+  if (!SYNC_ENABLED) {
+    debug('⚠ Синхронизация отключена. Укажи CONFIG.sync.baseUrl и CONFIG.sync.apiKey.');
+  }
 }
 
 function bindLoginForm() {
   const form = $('#loginForm');
   const err = $('#loginErr');
-  const hint = $('#loginHint');
-
-  if (CONFIG.passHash === 'CHANGE_ME') {
-    hint.innerHTML = 'Сейчас действует <b>временный</b> пароль из кода. Пожалуйста, сгенерируйте свой хэш и замените <span class="kbd">CONFIG.passHash</span> в <span class="kbd">/admin/local-admin.js</span>.';
-  }
 
   form.onsubmit = async (e) => {
     e.preventDefault();
