@@ -2,11 +2,10 @@
  * ВНИМАНИЕ: это клиентская «дверца». Для твоей задачи ок.
  * Поменяй логин/пароль ниже (см. CONFIG).
  */
-
 const CONFIG = {
   username: 'forfriends',                   // ЛОГИН
-  passHash: 'a841ff9a9a6d1ccc1549f1acded578a2b37cf31813cd0a594ca1f1833b09d09d',                    // ХЭШ (SHA-256 от "username:password:pepper")
-  pepper:  'ForFriends#Pepper-2025',        // «перец» к паролю (оставь/замени)
+  passHash: 'a841ff9a9a6d1ccc1549f1acded578a2b37cf31813cd0a594ca1f1833b09d09d', // SHA-256 от "username:password:pepper"
+  pepper:  'ForFriends#Pepper-2025',        // перец
   tokenKey: 'ff_admin_token',
   tokenTtlHours: 12,
 };
