@@ -1,12 +1,16 @@
 (function () {
-  // Инициализация Telegram WebApp (без падения вне телеги)
+  // === 0) Настройка API ===
+  // ВСТАВЬ свой домен Railway (без хвостов типа /):
+  const API_BASE = 'https://forfriends-sync-production.up.railway.app';
+
+  // === 1) Telegram WebApp (не мешает вне телеги)
   const tg = window.Telegram?.WebApp;
   try { tg?.ready(); tg?.expand(); } catch (e) {}
 
   const $grid = document.getElementById("grid");
   const $tabs = document.getElementById("tabs");
 
-  // Встроенный плейсхолдер, чтобы не ходить на внешние домены
+  // Плейсхолдер вместо пустого фото
   const PLACEHOLDER =
     "data:image/svg+xml;utf8," +
     encodeURIComponent(
@@ -18,24 +22,32 @@
       </svg>`
     );
 
-  // Утилита загрузки JSON (возвращает массив items[] или [])
-  async function load(path) {
+  // === 2) Универсальная загрузка: сначала Railway → fallback на локальный JSON
+  async function getJSON(localPath, apiPath) {
+    // сначала пытаемся забрать «живые» данные
     try {
-      const r = await fetch(`${path}?v=${Date.now()}`, { cache: "no-store" });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const data = await r.json();
-      return Array.isArray(data?.items) ? data.items : [];
-    } catch (e) {
-      console.error("load failed:", path, e);
-      return [];
+      const r = await fetch(`${API_BASE}${apiPath}?v=${Date.now()}`, { cache: "no-store" });
+      if (!r.ok) throw new Error(`API ${r.status}`);
+      return await r.json();
+    } catch (_) {
+      // если API недоступен — читаем статику с GH Pages
+      const r = await fetch(`${localPath}?v=${Date.now()}`, { cache: "no-store" });
+      if (!r.ok) throw new Error(`LOCAL ${r.status}`);
+      return await r.json();
     }
   }
 
-  // Загружаем данные
+  // помощник: превращаем {items:[...]} в массив, даже если пришло что-то не то
+  const toItems = (data) => (Array.isArray(data?.items) ? data.items : []);
+
+  // === 3) Загружаем категории и товары
   Promise.all([
-    load("./data/products.json"),
-    load("./data/categories.json")
-  ]).then(([products, categories]) => {
+    getJSON("./data/products.json",   "/catalog/products"),
+    getJSON("./data/categories.json", "/catalog/categories")
+  ]).then(([prodsData, catsData]) => {
+    const products = toItems(prodsData);
+    const categories = toItems(catsData);
+
     // Категория по умолчанию
     let activeCat = categories[0]?.title || "Все";
 
@@ -47,9 +59,12 @@
       renderTabs(categories, activeCat, onTabClick);
       renderList(products, activeCat);
     }
+  }).catch((e) => {
+    console.error("Loading failed:", e);
+    $grid.innerHTML = `<div class="empty">Не удалось загрузить каталог. Попробуйте обновить страницу.</div>`;
   });
 
-  // Рендер вкладок
+  // === 4) Рендер вкладок
   function renderTabs(categories, activeCat, onClick) {
     $tabs.innerHTML = "";
     const all = [{ title: "Все" }, ...categories];
@@ -63,7 +78,7 @@
     });
   }
 
-  // Рендер карточек
+  // === 5) Рендер карточек
   function renderList(products, activeCat) {
     $grid.innerHTML = "";
 
@@ -106,7 +121,7 @@
     });
   }
 
-  // helpers
+  // === 6) helpers
   function fmtPrice(v) {
     const n = Number(v || 0);
     return n.toLocaleString("ru-RU");
