@@ -49,7 +49,7 @@
     const categories = toItems(catsData);
 
     // Категория по умолчанию
-    let activeCat = categories[0]?.title || "Все";
+    let activeCat = "Все";
 
     renderTabs(categories, activeCat, onTabClick);
     renderList(products, activeCat);
