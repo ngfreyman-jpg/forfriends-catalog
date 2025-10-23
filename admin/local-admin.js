@@ -1,36 +1,34 @@
-/* ====== Локальная админка + РУЧНОЙ синк на Railway ======
- * - Авторизация: username + SHA-256("username:password:pepper")
- * - Каталог читаем из /data/*.json
- * - Изменения копятся локально; отправка — по кнопке «Внести изменения»
- * - POST {baseUrl}/push -> {jobId}; затем опрос GET {baseUrl}/status/:id
+/* ====== Локальная админка (гибрид) ======
+ * - Категории/товары редактируются локально
+ * - Кнопка «Внести изменения» шлёт POST /push и опрашивает /status/:id
+ * - Импорт/экспорт/скачивание удалены
  */
 
 const CONFIG = {
-  // --- авторизация ---
+  // авторизация
   username: 'forfriends',
-  passHash: 'a841ff9a9a6d1ccc1549f1acded578a2b37cf31813cd0a594ca1f1833b09d09d',
+  passHash: 'a841ff9a9a6d1ccc1549f1acded578a2b37cf31813cd0a594ca1f1833b09d09d', // SHA256("forfriends:<пароль>:ForFriends#Pepper-2025")
   pepper:   'ForFriends#Pepper-2025',
   tokenKey: 'ff_admin_token',
   tokenTtlHours: 12,
 
-  // --- источники данных каталога ---
+  // источники данных каталога (локальные JSON из репо)
   paths: {
     cats: '../data/categories.json',
     prods: '../data/products.json',
   },
 
-  // --- настройки синка ---
+  // синк на Railway
   sync: {
-    baseUrl: 'https://forfriends-sync-production.up.railway.app', // твой домен Railway
-    apiKey:  '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20', // тот же, что API_KEY на Railway
-    auto:    false,       // РУЧНОЙ режим
-    timeoutMs: 20000,     // таймаут HTTP для /push
-    pollMs:   1500,       // шаг опроса /status
-    totalTimeoutMs: 180000 // общий таймаут ожидания коммита (3 мин)
+    baseUrl: 'https://forfriends-sync-production.up.railway.app', // подставлен твой домен Railway
+    apiKey:  '<<<056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20>>>',                         // тот же, что в переменных Railway (API_KEY)
+    pollMs: 1500,
+    timeoutMs: 20000,
+    totalTimeoutMs: 180000, // 3 минуты
   },
 };
 
-/* ===================== Утилиты ===================== */
+/* ============ Утилиты ============ */
 const $  = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
@@ -39,23 +37,25 @@ async function sha256(str){
   const buf = await crypto.subtle.digest('SHA-256', enc);
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
+const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
 function escapeHtml(s){return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#039;' }[m]))}
 function escapeAttr(s){return String(s).replace(/"/g,'&quot;')}
 function fmtPrice(n){const x=Number(n||0);return x.toLocaleString('ru-RU')}
 async function safeJson(url){
-  try{
-    const r = await fetch(`${url}?v=${Date.now()}`, { cache:'no-store' });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json();
-    return Array.isArray(j?.items) ? j.items : [];
-  }catch(e){ console.warn('load fail', url, e); return []; }
+  const r = await fetch(`${url}?v=${Date.now()}`, { cache:'no-store' });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const j = await r.json();
+  return Array.isArray(j?.items) ? j.items : [];
 }
-const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
-const trimBase = (u)=> u.replace(/\/+$/,'');
+function logLine(s){
+  const ts = new Date().toLocaleTimeString();
+  const box = $('#log');
+  if (box) box.textContent = `[${ts}] ${s}\n` + box.textContent;
+}
 
-/* ===================== Авторизация ===================== */
+/* ============ Авторизация ============ */
 function setToken(hours=CONFIG.tokenTtlHours){
-  const t = { iat: Date.now(), exp: Date.now()+hours*3600*1000 };
+  const t = { exp: Date.now()+hours*3600*1000 };
   localStorage.setItem(CONFIG.tokenKey, JSON.stringify(t));
 }
 function hasToken(){
@@ -71,27 +71,12 @@ async function verifyLogin(login, pass){
   return login === CONFIG.username && hash === CONFIG.passHash;
 }
 
-/* ===================== Состояние ===================== */
+/* ============ Состояние ============ */
 const state = { cats: [], prods: [], editId: null };
 
-function debugBox(){
-  let el = $('#debugBox');
-  if (!el){
-    el = document.createElement('pre');
-    el.id = 'debugBox';
-    el.style.cssText = 'margin-top:12px;padding:10px;background:#0b0f14;border:1px solid #263140;border-radius:8px;max-height:220px;overflow:auto;color:#aab4c0;font:12px ui-monospace,Consolas';
-    ($('#app')||document.body).appendChild(el);
-  }
-  return el;
-}
-function log(msg){
-  const t = new Date().toLocaleTimeString();
-  debugBox().textContent = `[${t}] ${msg}\n` + debugBox().textContent;
-}
-
-/* ===================== Чтение/рендер ===================== */
+/* ============ Рендер ============ */
 async function loadAll(){
-  $('#statusText') && ($('#statusText').textContent = 'Загрузка данных…');
+  $('#statusText').textContent = 'Загрузка данных…';
   const [cats, prods] = await Promise.all([
     safeJson(CONFIG.paths.cats),
     safeJson(CONFIG.paths.prods),
@@ -99,7 +84,7 @@ async function loadAll(){
   state.cats = cats;
   state.prods = prods;
   renderCats(); renderProdFormOptions(); renderProds();
-  $('#statusText') && ($('#statusText').textContent = `Категорий: ${cats.length} • Товаров: ${prods.length}`);
+  $('#statusText').textContent = `Категорий: ${cats.length} • Товаров: ${prods.length}`;
 }
 
 function renderCats(){
@@ -123,11 +108,11 @@ function renderCats(){
   });
 }
 function renderProdFormOptions(){
-  const sel = $('#p_cat'); if (!sel) return;
-  sel.innerHTML = '';
+  const sel = $('#p_cat'); sel.innerHTML = '';
   state.cats.forEach(c=>{
     const o = document.createElement('option');
-    o.value = c.title; o.textContent = c.title; sel.appendChild(o);
+    o.value = c.title; o.textContent = c.title;
+    sel.appendChild(o);
   });
 }
 function renderProds(){
@@ -170,7 +155,7 @@ function clearProdForm(){
   state.editId = null;
   $('#p_id').value = $('#p_title').value = $('#p_price').value =
   $('#p_photo').value = $('#p_link').value = $('#p_desc').value = '';
-  const cat = $('#p_cat'); if (cat && cat.options.length) cat.selectedIndex = 0;
+  const sel = $('#p_cat'); if (sel.options.length) sel.selectedIndex = 0;
 }
 function collectProdFromForm(){
   return {
@@ -191,57 +176,11 @@ function validateProd(p){
   return null;
 }
 
-/* ===================== Модалка синка ===================== */
-function ensureSyncUI(){
-  // кнопка
-  if (!$('#syncNowBtn')){
-    const btn = document.createElement('button');
-    btn.id = 'syncNowBtn';
-    btn.className = 'btn primary';
-    btn.textContent = 'Внести изменения';
-    const io = $('#tab-io') || $('#app') || document.body;
-    (io.querySelector('.actions') || io).appendChild(btn);
-  }
-  // модалка
-  if (!$('#syncModal')){
-    const wrap = document.createElement('div');
-    wrap.id = 'syncModal';
-    wrap.className = 'modal hide';
-    wrap.innerHTML = `
-      <div class="modal-body">
-        <div id="syncTitle">Отправка…</div>
-        <div id="syncMsg" class="muted">Подождите, изменения применяются…</div>
-        <div id="syncSpinner" class="spinner"></div>
-        <button id="syncCloseBtn" class="btn" style="display:none">Закрыть</button>
-      </div>`;
-    document.body.appendChild(wrap);
-  }
-}
-function modalShow(title, msg){
-  $('#syncTitle').textContent = title || 'Отправка…';
-  $('#syncMsg').textContent   = msg   || 'Подождите, изменения применяются…';
-  $('#syncSpinner').style.display = '';
-  $('#syncCloseBtn').style.display = 'none';
-  $('#syncModal').classList.remove('hide');
-}
-function modalSet(msg){ $('#syncMsg').textContent = msg || ''; }
-function modalDone(ok, msg){
-  $('#syncTitle').textContent = ok ? 'Готово' : 'Ошибка';
-  $('#syncMsg').textContent   = msg || (ok ? 'Изменения внесены.' : 'Не удалось выполнить синк.');
-  $('#syncSpinner').style.display = 'none';
-  $('#syncCloseBtn').style.display = '';
-}
-function modalHide(){ $('#syncModal').classList.add('hide'); }
-
-/* ===================== РУЧНОЙ СИНК (push + poll status) ===================== */
-async function pushChangesAndWait(){
-  const baseUrl = trimBase(CONFIG.sync.baseUrl||'');
-  const apiKey  = CONFIG.sync.apiKey||'';
-  if (!baseUrl || !apiKey){
-    modalDone(false, 'Синхронизация не настроена (baseUrl/apiKey).');
-    return;
-  }
-  modalShow('Вносим изменения…', 'Создаём задачу на сервере…');
+/* ============ Синк ============ */
+async function pushChanges(){
+  const base = CONFIG.sync.baseUrl.replace(/\/+$/,'');
+  const key  = CONFIG.sync.apiKey;
+  if (!base || !key){ logLine('⚠ Синк не настроен (baseUrl/apiKey)'); return; }
 
   const payload = {
     categories: { items: state.cats },
@@ -249,98 +188,101 @@ async function pushChangesAndWait(){
     meta: { ts: Date.now(), reason: 'manual' }
   };
 
-  // 1) создаём задачу
-  let jobId = null;
   try{
+    $('#btn-push').disabled = true;
+    logLine('sync: SENDING…');
+
     const ctl = new AbortController();
     const t   = setTimeout(()=>ctl.abort(), CONFIG.sync.timeoutMs);
-    const res = await fetch(`${baseUrl}/push`, {
+    const res = await fetch(`${base}/push`, {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'x-api-key': apiKey },
+      headers: { 'Content-Type':'application/json', 'x-api-key': key },
       body: JSON.stringify(payload),
       signal: ctl.signal
     });
     clearTimeout(t);
-    if (res.status === 401 || res.status === 403){
-      const txt = await res.text().catch(()=> '');
-      throw new Error(`Доступ запрещён (HTTP ${res.status}). ${txt||''}`);
-    }
+
     if (!res.ok){
       const txt = await res.text().catch(()=> '');
-      throw new Error(`Ошибка /push (HTTP ${res.status}). ${txt||''}`);
+      throw new Error(`push HTTP ${res.status} ${txt}`);
     }
-    const data = await res.json().catch(()=> ({}));
-    jobId = data?.jobId || null;
-    if (!jobId) throw new Error('Сервер не вернул jobId.');
+    const { ok, jobId } = await res.json();
+    if (!ok || !jobId) throw new Error('Сервер не вернул jobId.');
+
+    logLine(`sync: QUEUED job ${jobId}`);
+    await pollStatus(base, key, jobId);
   }catch(e){
-    log('✗ push FAIL: ' + (e.message||e));
-    modalDone(false, e.message||'Ошибка /push');
-    return;
+    logLine('sync: ERROR ' + (e.message||e));
+  }finally{
+    $('#btn-push').disabled = false;
   }
-
-  // 2) опрос статуса
-  modalSet('Задача создана. Ожидайте…');
-  const started = Date.now();
-  let lastState = '';
-
-  while (Date.now() - started < CONFIG.sync.totalTimeoutMs){
-    await sleep(CONFIG.sync.pollMs);
-    try{
-      const r = await fetch(`${baseUrl}/status/${encodeURIComponent(jobId)}`, {
-        headers: { 'x-api-key': apiKey },
-        cache: 'no-store'
-      });
-      if (!r.ok){
-        const t = await r.text().catch(()=> '');
-        throw new Error(`status HTTP ${r.status}: ${t}`);
-      }
-      const st = await r.json();
-      if (st.state !== lastState){
-        lastState = st.state;
-        if (st.state === 'queued')  modalSet('Задача в очереди. Ожидайте…');
-        if (st.state === 'running') modalSet('Выполняем коммит и пуш…');
-      }
-      if (st.state === 'done'){
-        log('✓ sync DONE: ' + (st.commit||''));
-        modalDone(true, 'Готово! Изменения закоммичены.\nGitHub Pages может обновляться 10–60 сек.');
-        return;
-      }
-      if (st.state === 'error'){
-        log('✗ sync ERROR: ' + (st.error||'unknown'));
-        modalDone(false, st.error || 'Ошибка во время коммита.');
-        return;
-      }
-    }catch(e){
-      log('✗ status FAIL: ' + (e.message||e));
-      modalDone(false, e.message||'Ошибка запроса статуса.');
-      return;
-    }
-  }
-
-  modalDone(false, 'Таймаут ожидания (3 мин). Проверь репозиторий вручную.');
 }
 
-/* ===================== UI & boot ===================== */
+async function pollStatus(base, key, jobId){
+  const started = Date.now();
+  let last = '';
+  while (Date.now() - started < CONFIG.sync.totalTimeoutMs){
+    await sleep(CONFIG.sync.pollMs);
+    const r = await fetch(`${base}/status/${encodeURIComponent(jobId)}`, {
+      headers: { 'x-api-key': key }, cache:'no-store'
+    });
+    if (!r.ok){
+      const t = await r.text().catch(()=> '');
+      throw new Error(`status HTTP ${r.status} ${t}`);
+    }
+    const st = await r.json();
+    if (st.state !== last){
+      last = st.state;
+      if (st.state === 'queued')  logLine('sync: QUEUED…');
+      if (st.state === 'running') logLine('sync: RUNNING…');
+    }
+    if (st.state === 'done'){ logLine(`sync: DONE ${st.commit||''}`); return; }
+    if (st.state === 'error'){ throw new Error(st.error||'unknown'); }
+  }
+  throw new Error('timeout');
+}
+
+/* ============ Навигация/boot ============ */
 function switchTab(name){
   $$('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
   $('#tab-cats' ).classList.toggle('hide', name!=='cats');
   $('#tab-goods').classList.toggle('hide', name!=='goods');
-  $('#tab-io'   ).classList.toggle('hide', name!=='io');
+  $('#tab-sync' ).classList.toggle('hide', name!=='sync');
 }
 
 async function boot(){
   // вкладки
   $$('.tab').forEach(b=> b.onclick = ()=> switchTab(b.dataset.tab));
+  switchTab('cats');
 
-  // кнопки товаров/категорий
+  // auth
   $('#logoutBtn').onclick = ()=>{ clearToken(); location.reload(); };
 
+  if (hasToken()){
+    $('#loginCard').classList.add('hide');
+    $('#app').classList.remove('hide');
+    await loadAll();
+  }else{
+    $('#loginCard').classList.remove('hide');
+    $('#app').classList.add('hide');
+    $('#loginForm').onsubmit = async (e)=>{
+      e.preventDefault();
+      $('#loginErr').classList.add('hide');
+      const ok = await verifyLogin($('#login').value.trim(), $('#password').value);
+      if (!ok){ $('#loginErr').classList.remove('hide'); return; }
+      setToken(); location.reload();
+    };
+  }
+
+  // категории
   $('#addCatBtn').onclick = ()=>{
     const t = $('#catTitle').value.trim(); if (!t) return;
-    state.cats.push({ title:t }); $('#catTitle').value = '';
+    state.cats.push({ title: t });
+    $('#catTitle').value = '';
     renderCats(); renderProdFormOptions();
   };
 
+  // товары
   $('#saveProdBtn').onclick = ()=>{
     const p = collectProdFromForm();
     const err = validateProd(p); if (err) return alert(err);
@@ -350,48 +292,10 @@ async function boot(){
   };
   $('#resetProdBtn').onclick = clearProdForm;
 
-  // импорт/экспорт (локальные файлы)
-  $('#fileCats').addEventListener('change', async e=>{
-    const f = e.target.files[0]; if (!f) return;
-    const j = JSON.parse(await f.text());
-    state.cats = Array.isArray(j?.items) ? j.items : [];
-    renderCats(); renderProdFormOptions(); log('Импортирован categories.json');
-  });
-  $('#fileProds').addEventListener('change', async e=>{
-    const f = e.target.files[0]; if (!f) return;
-    const j = JSON.parse(await f.text());
-    state.prods = Array.isArray(j?.items) ? j.items : [];
-    renderProds(); log('Импортирован products.json');
-  });
+  // синк
+  $('#btn-push').onclick = pushChanges;
 
-  // авторизация
-  if (hasToken()){
-    $('#loginCard').classList.add('hide');
-    $('#app').classList.remove('hide');
-    await loadAll();
-  }else{
-    $('#loginCard').classList.remove('hide');
-    $('#app').classList.add('hide');
-    const form = $('#loginForm');
-    const err  = $('#loginErr');
-    form.onsubmit = async (e)=>{
-      e.preventDefault(); err.classList.add('hide');
-      const ok = await verifyLogin($('#login').value.trim(), $('#password').value);
-      if (!ok){ err.classList.remove('hide'); return; }
-      setToken(); location.reload();
-    };
-  }
-
-  // ручной синк: кнопка + модалка
-  ensureSyncUI();
-  $('#syncNowBtn').onclick = ()=> pushChangesAndWait();
-  $('#syncCloseBtn').onclick = modalHide;
-
-  if (!CONFIG.sync.baseUrl || !CONFIG.sync.apiKey){
-    log('⚠ Синхронизация не настроена: заполните CONFIG.sync.baseUrl и apiKey.');
-  }else{
-    log('✓ Ручной синк включён. Нажимайте «Внести изменения» для коммита.');
-  }
+  logLine('✓ Ручной синк включён. Нажимай «Внести изменения».');
 }
 
 boot().catch(e=>{ console.error(e); alert('Ошибка запуска админки. См. консоль.'); });
