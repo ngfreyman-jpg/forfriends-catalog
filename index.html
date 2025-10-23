@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Для своих — каталог</title>
 
-  <!-- шрифты -->
+  <!-- Шрифты -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Manrope:wght@700&display=swap" rel="stylesheet">
@@ -17,96 +17,91 @@
       --muted:#9aa3b2;
       --fg:#f2f5f7;
       --line:#232a36;
-      --acid:#D7FF3F;     /* лаймовый, под лого */
+      --acid:#D7FF3F;     /* лаймовый под лого */
       --acid-2:#B7FF2E;
       --danger:#ff6b6b;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --shadow:0 10px 30px rgba(0,0,0,.35);
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0;background:var(--bg);color:var(--fg);
-      font:16px/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     }
 
-    /* header */
+    /* Header */
     .ff-header{
-      position: sticky; top:0; z-index:50; backdrop-filter: blur(8px);
-      background: linear-gradient(180deg, rgba(16,18,23,.75), rgba(16,18,23,.35));
-      border-bottom: 1px solid #1d2230;
+      position:sticky; top:0; z-index:50; backdrop-filter:blur(8px);
+      background:linear-gradient(180deg,rgba(16,18,23,.75),rgba(16,18,23,.35));
+      border-bottom:1px solid #1d2230;
     }
     .ff-header__inner{
       max-width:1100px; margin:0 auto; padding:14px 18px;
       display:flex; align-items:center; gap:14px;
     }
-    .ff-logo{ height:36px; width:auto; filter: drop-shadow(0 0 10px rgba(215,255,63,.25)); }
-    .ff-brand{ display:flex; align-items:baseline; gap:10px }
-    .ff-brand__title{ font: 700 20px/1.2 "Manrope", Inter, system-ui; letter-spacing:.2px }
+    .ff-logo{height:36px;width:auto;filter:drop-shadow(0 0 10px rgba(215,255,63,.25))}
+    .ff-brand{display:flex;align-items:baseline;gap:10px}
+    .ff-brand__title{font:700 20px/1.2 "Manrope",Inter,system-ui;letter-spacing:.2px}
     .ff-brand__tag{
-      font: 600 11px/1 Inter; color:#0b0f14; background:var(--acid);
-      padding:6px 8px; border-radius:999px; text-transform:uppercase; letter-spacing:.8px;
+      font:600 11px/1 Inter;color:#0b0f14;background:var(--acid);
+      padding:6px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.8px;
     }
 
-    /* контентный контейнер */
+    /* Контейнер */
     .wrap{max-width:1100px;margin:0 auto;padding:14px 18px}
 
-    /* табы */
-    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin: 12px 0 8px}
+    /* Табы */
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px}
     .tab{
-      background:#151a22; border:1px solid var(--line); color:#cfd6e4;
-      border-radius:999px; padding:8px 14px; transition: .2s; cursor:pointer;
+      background:#151a22;border:1px solid var(--line);color:#cfd6e4;
+      border-radius:999px;padding:8px 14px;transition:.2s;cursor:pointer;
     }
-    .tab:hover{ border-color:#324059 }
+    .tab:hover{border-color:#324059}
     .tab.active{
-      color:#0b0f14; background: linear-gradient(90deg, var(--acid), var(--acid-2));
-      border-color: transparent;
-      box-shadow: 0 0 0 4px rgba(215,255,63,.12), 0 8px 24px rgba(215,255,63,.18);
+      color:#0b0f14;background:linear-gradient(90deg,var(--acid),var(--acid-2));
+      border-color:transparent;
+      box-shadow:0 0 0 4px rgba(215,255,63,.12),0 8px 24px rgba(215,255,63,.18);
     }
 
-    /* сетка карточек */
-    #grid{
-      display:grid; gap:18px;
-      grid-template-columns: repeat(2,minmax(0,1fr));
-    }
-    @media (min-width:700px){ #grid{ grid-template-columns: repeat(3,minmax(0,1fr)); } }
-    @media (min-width:980px){ #grid{ grid-template-columns: repeat(4,minmax(0,1fr)); } }
+    /* Сетка карточек */
+    #grid{display:grid;gap:18px;grid-template-columns:repeat(2,minmax(0,1fr))}
+    @media (min-width:700px){#grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media (min-width:980px){#grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 
-    /* карточка */
+    /* Карточка */
     .card{
-      background: radial-gradient(140% 120% at 10% -10%, rgba(215,255,63,.06) 0%, rgba(18,22,29,0) 30%),
-                  var(--card);
-      border:1px solid var(--line);
-      border-radius:24px; overflow:hidden; display:flex; flex-direction:column;
-      box-shadow: var(--shadow);
-      transform: translateZ(0); transition: transform .18s ease, box-shadow .18s ease, border-color .18s;
+      background:radial-gradient(140% 120% at 10% -10%,rgba(215,255,63,.06) 0%,rgba(18,22,29,0) 30%),var(--card);
+      border:1px solid var(--line);border-radius:24px;overflow:hidden;display:flex;flex-direction:column;
+      box-shadow:var(--shadow);
+      transform:translateZ(0);transition:transform .18s ease,box-shadow .18s ease,border-color .18s;
     }
     .card:hover{
-      transform: translateY(-2px);
+      transform:translateY(-2px);
       border-color:#2c3546;
-      box-shadow: 0 12px 40px rgba(0,0,0,.45), 0 0 0 4px rgba(215,255,63,.06) inset;
+      box-shadow:0 12px 40px rgba(0,0,0,.45),0 0 0 4px rgba(215,255,63,.06) inset;
     }
     .card .photo{
-      display:block; width:100%; aspect-ratio: 4/5; object-fit:cover;
-      background:#0f131a; border-bottom:1px solid #1b2231;
+      display:block;width:100%;aspect-ratio:4/5;object-fit:cover;
+      background:#0f131a;border-bottom:1px solid #1b2231;
     }
-    .card .info{ padding:14px 14px 10px }
-    .card .title{ font-weight:600; margin-bottom:6px }
-    .card .sku{ color:var(--muted); font-size:12px; margin-bottom:8px }
+    .card .info{padding:14px 14px 10px}
+    .card .title{font-weight:600;margin-bottom:6px}
+    .card .sku{color:var(--muted);font-size:12px;margin-bottom:8px}
     .card .price{
-      display:inline-flex; align-items:center; gap:6px; font-weight:700;
-      color:#0b0f14; padding:6px 10px; border-radius:10px;
-      background:linear-gradient(90deg, var(--acid), var(--acid-2));
+      display:inline-flex;align-items:center;gap:6px;font-weight:700;
+      color:#0b0f14;padding:6px 10px;border-radius:10px;
+      background:linear-gradient(90deg,var(--acid),var(--acid-2));
     }
     .btn{
-      background:#1b2331; color:#cfe1ff; border:1px solid #2a354a; border-radius:12px;
-      padding:10px 12px; margin:12px; cursor:pointer; transition:.15s; font-weight:600;
+      background:#1b2331;color:#cfe1ff;border:1px solid #2a354a;border-radius:12px;
+      padding:10px 12px;margin:12px;cursor:pointer;transition:.15s;font-weight:600;
     }
-    .btn:hover{ border-color:#3a4a66; transform: translateY(-1px) }
-    .btn:active{ transform: translateY(0); box-shadow: inset 0 0 0 999px rgba(255,255,255,.04) }
+    .btn:hover{border-color:#3a4a66;transform:translateY(-1px)}
+    .btn:active{transform:translateY(0);box-shadow:inset 0 0 0 999px rgba(255,255,255,.04)}
 
     .empty{
-      grid-column:1/-1; text-align:center; color:var(--muted);
-      padding:24px; border:1px dashed var(--line); border-radius:14px; background:#0e131d;
+      grid-column:1/-1;text-align:center;color:var(--muted);
+      padding:24px;border:1px dashed var(--line);border-radius:14px;background:#0e131d;
     }
   </style>
 
@@ -115,11 +110,11 @@
 </head>
 <body>
 
-  <!-- Хедер с логотипом -->
+  <!-- Хедер -->
   <header class="ff-header">
     <div class="ff-header__inner">
-      <!-- SVG предпочтительно; если PNG — замени путь -->
-      <img src="./images/brand/logo.svg" alt="Для своих" class="ff-logo">
+      <!-- поменяй путь, если логотип PNG -->
+      <img src="./images/brand/forfriends-logo.png" alt="Для своих" class="ff-logo">
       <div class="ff-brand">
         <span class="ff-brand__title">Для своих</span>
         <span class="ff-brand__tag">store</span>
@@ -132,7 +127,6 @@
     <main id="grid"></main>
   </div>
 
-  <!-- Каталожный JS -->
   <script src="./app.js?v=3" defer></script>
 </body>
 </html>
