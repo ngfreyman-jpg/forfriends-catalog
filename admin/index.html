@@ -125,6 +125,13 @@
           </div>
           <label>Фото (URL или путь)</label>
           <input id="p_photo" placeholder="images/hoodie1.webp" />
+          <!-- новинка: загрузка файла + кнопка -->
+          <div style="margin:8px 0; display:flex; gap:8px; align-items:center;">
+            <input id="p_file" type="file" accept="image/*" />
+            <button id="btn-upload" class="btn secondary" type="button">Загрузить фото</button>
+          </div>
+          <small class="muted">Можно выбрать файл и загрузить — ссылка подставится в поле «Фото».</small>
+          <!-- /новинка -->
           <label>Ссылка (опционально)</label>
           <input id="p_link" placeholder="https://…" />
           <label>Описание (опционально)</label>
