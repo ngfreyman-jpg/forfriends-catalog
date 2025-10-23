@@ -4,7 +4,18 @@
 
   // === 1) Telegram WebApp (не мешает вне телеги)
   const tg = window.Telegram?.WebApp;
-  try { tg?.ready(); tg?.expand(); } catch {}
+  try {
+    tg?.ready();
+    tg?.expand();
+    // тёмный хром под тему каталога
+    tg?.setHeaderColor?.('#0c0e11');
+    tg?.setBackgroundColor?.('#0c0e11');
+    // на всякий: удерживаем цвет при смене темы
+    tg?.onEvent?.('themeChanged', () => {
+      tg?.setHeaderColor?.('#0c0e11');
+      tg?.setBackgroundColor?.('#0c0e11');
+    });
+  } catch {}
 
   const $grid = document.getElementById("grid");
   const $tabs = document.getElementById("tabs");
@@ -81,7 +92,7 @@
     });
   }
 
-  // === 5) Рендер карточек (lenient lazy-loading)
+  // === 5) Рендер карточек (lazy-loading + фиксированные размеры)
   function renderList(products, activeCat) {
     $grid.innerHTML = "";
 
