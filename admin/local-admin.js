@@ -1,13 +1,14 @@
 /* ====== Локальная админка (гибрид) ======
  * - Категории/товары редактируются локально
- * - Кнопка «Внести изменения» шлёт POST /push и опрашивает /status/:id
- * - Импорт/экспорт/скачивание удалены
+ * - «Внести изменения» шлёт POST /push и опрашивает /status/:id
+ * - Добавлены: загрузка фото в репо /upload и удаление /media/delete (safe)
  */
 
 const CONFIG = {
   // авторизация
   username: 'forfriends',
-  passHash: '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20', // SHA256("forfriends:<пароль>:ForFriends#Pepper-2025")
+  // ВНИМАНИЕ: сейчас passHash = API-ключу. Для входа это ок, но лучше позже поставить хэш от "forfriends:<пароль>:ForFriends#Pepper-2025".
+  passHash: '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20',
   pepper:   'ForFriends#Pepper-2025',
   tokenKey: 'ff_admin_token',
   tokenTtlHours: 12,
@@ -20,8 +21,8 @@ const CONFIG = {
 
   // синк на Railway
   sync: {
-    baseUrl: 'https://forfriends-sync-production.up.railway.app', // подставлен твой домен Railway
-    apiKey:  '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20',                         // тот же, что в переменных Railway (API_KEY)
+    baseUrl: 'https://forfriends-sync-production.up.railway.app',
+    apiKey:  '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20',
     pollMs: 1500,
     timeoutMs: 20000,
     totalTimeoutMs: 180000, // 3 минуты
@@ -51,6 +52,52 @@ function logLine(s){
   const ts = new Date().toLocaleTimeString();
   const box = $('#log');
   if (box) box.textContent = `[${ts}] ${s}\n` + box.textContent;
+}
+
+/* ====== Media helpers (upload/delete) ====== */
+function isRepoImageUrl(url) {
+  if (!url) return false;
+  try {
+    const u = new URL(url, 'https://dummy/');
+    return u.pathname.includes('/images/');
+  } catch {
+    // относительный путь
+    return String(url).startsWith('images/');
+  }
+}
+async function uploadImageFile(file) {
+  const base = CONFIG.sync.baseUrl.replace(/\/+$/, '');
+  const key  = (CONFIG.sync.apiKey || '').trim();
+  const fd = new FormData();
+  fd.append('file', file);
+  const r = await fetch(`${base}/upload`, {
+    method: 'POST',
+    headers: { 'x-api-key': key },
+    body: fd
+  });
+  if (!r.ok) throw new Error('upload_failed');
+  const data = await r.json();
+  if (!data?.url) throw new Error('bad_upload_response');
+  return data.url; // абсолютный URL GH Pages
+}
+async function deleteImageIfUnused(url) {
+  // если фото используется хотя бы в одном товаре — не удаляем
+  const stillUsed = state.prods.some(p => (p.photo||'').trim() === (url||'').trim());
+  if (stillUsed) return;
+  if (!isRepoImageUrl(url)) return;
+
+  try {
+    const base = CONFIG.sync.baseUrl.replace(/\/+$/, '');
+    const key  = (CONFIG.sync.apiKey || '').trim();
+    const r = await fetch(`${base}/media/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-api-key': key },
+      body: JSON.stringify({ url })
+    });
+    if (r.ok) logLine('media: удалено ' + url);
+  } catch (e) {
+    logLine('media: не удалось удалить (см. логи)');
+  }
 }
 
 /* ============ Авторизация ============ */
@@ -133,9 +180,20 @@ function renderProds(){
       </div>
     `;
     row.querySelector('[data-edit]').onclick = ()=>{ fillProdForm(p); state.editId = p.id; };
-    row.querySelector('[data-del]').onclick  = ()=>{
-      if (confirm(`Удалить товар «${p.title}»?`)){
-        state.prods.splice(i,1); renderProds();
+    row.querySelector('[data-del]').onclick  = async ()=>{
+      if (!confirm(`Удалить товар «${p.title}»?`)) return;
+
+      // сохраним URL фото до удаления
+      const photoUrl = (p.photo || '').trim();
+
+      // удаляем товар из локального списка
+      state.prods.splice(i,1);
+      renderProds();
+
+      // если фото из нашего репо и его больше никто не использует — удалим файл на сервере
+      if (photoUrl && isRepoImageUrl(photoUrl)) {
+        const stillUsed = state.prods.some(x => (x.photo||'').trim() === photoUrl);
+        if (!stillUsed) await deleteImageIfUnused(photoUrl);
       }
     };
     box.appendChild(row);
@@ -179,7 +237,7 @@ function validateProd(p){
 /* ============ Синк ============ */
 async function pushChanges(){
   const base = CONFIG.sync.baseUrl.replace(/\/+$/,'');
-  const key  = CONFIG.sync.apiKey;
+  const key  = (CONFIG.sync.apiKey || '').trim();
   if (!base || !key){ logLine('⚠ Синк не настроен (baseUrl/apiKey)'); return; }
 
   const payload = {
@@ -291,6 +349,26 @@ async function boot(){
     clearProdForm(); renderProds();
   };
   $('#resetProdBtn').onclick = clearProdForm;
+
+  // Загрузка фото
+  $('#btn-upload').onclick = async () => {
+    const inp = $('#p_file');
+    const file = inp?.files?.[0];
+    if (!file) { alert('Выберите файл'); return; }
+    try {
+      $('#btn-upload').disabled = true;
+      logLine('media: загрузка...');
+      const url = await uploadImageFile(file);
+      $('#p_photo').value = url;
+      logLine('media: загружено');
+    } catch (e) {
+      alert('Не удалось загрузить фото');
+      logLine('media: ошибка загрузки');
+    } finally {
+      $('#btn-upload').disabled = false;
+      if ($('#p_file')) $('#p_file').value = '';
+    }
+  };
 
   // синк
   $('#btn-push').onclick = pushChanges;
