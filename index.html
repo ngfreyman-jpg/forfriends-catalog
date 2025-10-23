@@ -3,111 +3,136 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Для своих — каталог</title>
 
-  <title>Каталог ForFriends</title>
-
-  <!-- Встроенный Favicon (вариант A) -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100%25' height='100%25' fill='%23111'/%3E%3Ctext x='50%25' y='55%25' font-size='56' text-anchor='middle' fill='%23777' font-family='system-ui,-apple-system,Segoe UI,Roboto'%3EFF%3C/text%3E%3C/svg%3E">
-
+  <!-- шрифты -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Manrope:wght@700&display=swap" rel="stylesheet">
 
   <style>
     :root{
-      --bg: #0f0f10;
-      --card: #17181a;
-      --muted: #868e96;
-      --text: #e9ecef;
-      --accent: #4c8cf5;
-      --btn: #3b82f6;
-      --btn-txt: #fff;
-      --border: #212529;
+      --bg:#0c0e11;
+      --card:#12161d;
+      --muted:#9aa3b2;
+      --fg:#f2f5f7;
+      --line:#232a36;
+      --acid:#D7FF3F;     /* лаймовый, под лого */
+      --acid-2:#B7FF2E;
+      --danger:#ff6b6b;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
     }
-    * { box-sizing: border-box }
-    html, body { height: 100% }
+    *{box-sizing:border-box}
+    html,body{height:100%}
     body{
-      margin:0;
-      background:var(--bg);
-      color:var(--text);
-      font: 16px/1.4 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      margin:0;background:var(--bg);color:var(--fg);
+      font:16px/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     }
 
-    header{
-      padding: 14px 16px 8px;
-      font-weight: 600;
-      border-bottom: 1px solid var(--border);
-      position: sticky; top: 0; background: var(--bg); z-index: 10;
+    /* header */
+    .ff-header{
+      position: sticky; top:0; z-index:50; backdrop-filter: blur(8px);
+      background: linear-gradient(180deg, rgba(16,18,23,.75), rgba(16,18,23,.35));
+      border-bottom: 1px solid #1d2230;
+    }
+    .ff-header__inner{
+      max-width:1100px; margin:0 auto; padding:14px 18px;
+      display:flex; align-items:center; gap:14px;
+    }
+    .ff-logo{ height:36px; width:auto; filter: drop-shadow(0 0 10px rgba(215,255,63,.25)); }
+    .ff-brand{ display:flex; align-items:baseline; gap:10px }
+    .ff-brand__title{ font: 700 20px/1.2 "Manrope", Inter, system-ui; letter-spacing:.2px }
+    .ff-brand__tag{
+      font: 600 11px/1 Inter; color:#0b0f14; background:var(--acid);
+      padding:6px 8px; border-radius:999px; text-transform:uppercase; letter-spacing:.8px;
     }
 
-    .tabs{
-      display:flex; gap:8px; padding: 10px 12px 0; flex-wrap: wrap;
-      position: sticky; top: 56px; background: var(--bg); z-index: 9;
-    }
+    /* контентный контейнер */
+    .wrap{max-width:1100px;margin:0 auto;padding:14px 18px}
+
+    /* табы */
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin: 12px 0 8px}
     .tab{
-      padding: 10px 12px; border-radius: 10px; border:1px solid var(--border);
-      background: transparent; color:var(--text); cursor:pointer;
+      background:#151a22; border:1px solid var(--line); color:#cfd6e4;
+      border-radius:999px; padding:8px 14px; transition: .2s; cursor:pointer;
     }
-    .tab.active{ background: var(--card); border-color: var(--card) }
+    .tab:hover{ border-color:#324059 }
+    .tab.active{
+      color:#0b0f14; background: linear-gradient(90deg, var(--acid), var(--acid-2));
+      border-color: transparent;
+      box-shadow: 0 0 0 4px rgba(215,255,63,.12), 0 8px 24px rgba(215,255,63,.18);
+    }
 
-    .grid{
-      display:grid;
+    /* сетка карточек */
+    #grid{
+      display:grid; gap:18px;
       grid-template-columns: repeat(2,minmax(0,1fr));
-      gap: 12px;
-      padding: 12px;
     }
-    @media (min-width: 600px){
-      .grid{ grid-template-columns: repeat(3,minmax(0,1fr)) }
-    }
-    @media (min-width: 900px){
-      .grid{ grid-template-columns: repeat(4,minmax(0,1fr)) }
-    }
+    @media (min-width:700px){ #grid{ grid-template-columns: repeat(3,minmax(0,1fr)); } }
+    @media (min-width:980px){ #grid{ grid-template-columns: repeat(4,minmax(0,1fr)); } }
 
+    /* карточка */
     .card{
-      background: var(--card);
-      border:1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-      display:flex; flex-direction: column;
+      background: radial-gradient(140% 120% at 10% -10%, rgba(215,255,63,.06) 0%, rgba(18,22,29,0) 30%),
+                  var(--card);
+      border:1px solid var(--line);
+      border-radius:24px; overflow:hidden; display:flex; flex-direction:column;
+      box-shadow: var(--shadow);
+      transform: translateZ(0); transition: transform .18s ease, box-shadow .18s ease, border-color .18s;
     }
-    .photo{
-      width:100%; aspect-ratio: 4/5; object-fit: cover; display:block; background:#111;
+    .card:hover{
+      transform: translateY(-2px);
+      border-color:#2c3546;
+      box-shadow: 0 12px 40px rgba(0,0,0,.45), 0 0 0 4px rgba(215,255,63,.06) inset;
     }
-    .info{ padding: 10px 12px 0 }
-    .title{ font-weight: 600; margin-bottom: 6px }
-    .sku{ color:var(--muted); font-size:13px; margin-bottom: 6px }
-    .price{ font-weight: 600; margin-bottom: 10px }
-
+    .card .photo{
+      display:block; width:100%; aspect-ratio: 4/5; object-fit:cover;
+      background:#0f131a; border-bottom:1px solid #1b2231;
+    }
+    .card .info{ padding:14px 14px 10px }
+    .card .title{ font-weight:600; margin-bottom:6px }
+    .card .sku{ color:var(--muted); font-size:12px; margin-bottom:8px }
+    .card .price{
+      display:inline-flex; align-items:center; gap:6px; font-weight:700;
+      color:#0b0f14; padding:6px 10px; border-radius:10px;
+      background:linear-gradient(90deg, var(--acid), var(--acid-2));
+    }
     .btn{
-      margin: 0 12px 12px;
-      padding: 12px 12px; border-radius: 10px;
-      background: var(--btn); color: var(--btn-txt);
-      border: none; cursor: pointer; font-weight: 600;
+      background:#1b2331; color:#cfe1ff; border:1px solid #2a354a; border-radius:12px;
+      padding:10px 12px; margin:12px; cursor:pointer; transition:.15s; font-weight:600;
     }
+    .btn:hover{ border-color:#3a4a66; transform: translateY(-1px) }
+    .btn:active{ transform: translateY(0); box-shadow: inset 0 0 0 999px rgba(255,255,255,.04) }
 
     .empty{
-      grid-column: 1 / -1; text-align: center; color: var(--muted);
-      padding: 32px 12px;
-      border:1px dashed var(--border);
-      border-radius: 12px;
-      background: rgba(255,255,255,.02);
+      grid-column:1/-1; text-align:center; color:var(--muted);
+      padding:24px; border:1px dashed var(--line); border-radius:14px; background:#0e131d;
     }
   </style>
 
-  <img src="./images/brand/logo.svg" alt="Для своих" class="ff-logo">
-
-  <!-- SDK Telegram WebApp (безопасно, даже если не в Telegram) -->
+  <!-- Telegram WebApp SDK (не мешает вне Telegram) -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 
-  <header>Каталог ForFriends</header>
+  <!-- Хедер с логотипом -->
+  <header class="ff-header">
+    <div class="ff-header__inner">
+      <!-- SVG предпочтительно; если PNG — замени путь -->
+      <img src="./images/brand/logo.svg" alt="Для своих" class="ff-logo">
+      <div class="ff-brand">
+        <span class="ff-brand__title">Для своих</span>
+        <span class="ff-brand__tag">store</span>
+      </div>
+    </div>
+  </header>
 
-  <div id="tabs" class="tabs"></div>
+  <div class="wrap">
+    <div id="tabs" class="tabs"></div>
+    <main id="grid"></main>
+  </div>
 
-  <main class="grid" id="grid"></main>
-
-  <!-- Наш JS (без module, чтобы не ловить top-level await) -->
-  <script src="./app.js?v=1" defer></script>
+  <!-- Каталожный JS -->
+  <script src="./app.js?v=3" defer></script>
 </body>
 </html>
