@@ -1,22 +1,10 @@
 {
   "items": [
     {
-      "id": "228322",
-      "title": "Прах любимой бабули",
-      "price": 999999,
-      "category": "хуй",
-      "photo": "https://preview.redd.it/so-ive-had-grandpas-ashes-for-awhile-now-but-grandmas-ashes-v0-sj8lovs63zvd1.jpeg?width=1080&crop=smart&auto=webp&s=5c0ae714aac7946d72e782d314b09b3363395742",
-      "link": "",
-      "desc": "ПАМАГИТЕ"
-    },
-    {
-      "id": "322228",
-      "title": "Детский плач",
-      "price": 0.2,
-      "category": "залупа",
-      "photo": "",
-      "link": "",
-      "desc": "ПАМАГИТЕ"
+      "id": "sku-1",
+      "title": "Тест",
+      "price": 1,
+      "category": "Тест"
     }
   ]
 }
