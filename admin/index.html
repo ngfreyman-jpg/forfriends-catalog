@@ -79,7 +79,7 @@
     <div class="tabs section">
       <button class="tab active" data-tab="cats">Категории</button>
       <button class="tab" data-tab="goods">Товары</button>
-      <button class="tab" data-tab="io">Импорт/Экспорт</button>
+      <button class="tab" data-tab="sync">Внести изменения</button>
     </div>
 
     <!-- Категории -->
@@ -138,30 +138,17 @@
       </div>
     </div>
 
-    <!-- Импорт/Экспорт -->
-    <div id="tab-io" class="section hide">
-      <h2>Импорт</h2>
-      <p class="muted">Можно подменить данные локальными файлами (это не меняет файлы в репозитории).</p>
-      <div class="row">
-        <div>
-          <label>categories.json</label>
-          <input id="fileCats" type="file" accept=".json" />
-        </div>
-        <div>
-          <label>products.json</label>
-          <input id="fileProds" type="file" accept=".json" />
-        </div>
+    <!-- Внести изменения -->
+    <div id="tab-sync" class="section hide">
+      <h2>Изменения</h2>
+      <p class="muted">Ручной синк включён: текущие категории и товары будут отправлены на сервер и сразу попадут в каталог. Коммит в GitHub выполняется в фоне.</p>
+
+      <div class="footer" style="justify-content:flex-start">
+        <button id="btn-push" class="btn">Внести изменения</button>
       </div>
 
-      <h2 style="margin-top:22px">Экспорт</h2>
-      <p class="muted">Скачай файлы и положи в <span class="kbd">/data</span> репозитория.</p>
-      <div class="footer">
-        <button id="dlCatsBtn" class="btn">Скачать categories.json</button>
-        <button id="dlProdsBtn" class="btn">Скачать products.json</button>
-      </div>
-
-      <h2 style="margin-top:22px">Статус</h2>
-      <pre id="debugBox" class="muted" style="white-space:pre-wrap;background:#0f1420;border:1px solid #293553;border-radius:12px;padding:12px;max-height:200px;overflow:auto"></pre>
+      <h3 style="margin-top:18px">Статус</h3>
+      <pre id="log" class="muted" style="white-space:pre-wrap;background:#0f1420;border:1px solid #293553;border-radius:12px;padding:12px;max-height:220px;overflow:auto"></pre>
     </div>
 
   </div>
