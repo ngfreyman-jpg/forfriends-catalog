@@ -9,7 +9,7 @@
   const $grid = document.getElementById("grid");
   const $tabs = document.getElementById("tabs");
 
-  // Плейсхолдер для пустых фото
+  // Плейсхолдер для пустых фото (800×1000 — под эти размеры задаём width/height)
   const PLACEHOLDER =
     "data:image/svg+xml;utf8," +
     encodeURIComponent(
@@ -81,7 +81,7 @@
     });
   }
 
-  // === 5) Рендер карточек
+  // === 5) Рендер карточек (lenient lazy-loading)
   function renderList(products, activeCat) {
     $grid.innerHTML = "";
 
@@ -102,7 +102,15 @@
       const photo = it.photo?.trim() || PLACEHOLDER;
 
       card.innerHTML = `
-        <img class="photo" src="${photo}" alt="">
+        <img
+          class="photo"
+          src="${photo || PLACEHOLDER}"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          width="800"
+          height="1000"
+        >
         <div class="info">
           <div class="title">${escapeHTML(it.title || "")}</div>
           <div class="sku">${escapeHTML(it.id || "")}</div>
