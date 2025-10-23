@@ -21,7 +21,7 @@ const CONFIG = {
   // синк на Railway
   sync: {
     baseUrl: 'https://forfriends-sync-production.up.railway.app', // подставлен твой домен Railway
-    apiKey:  '<<<056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20>>>',                         // тот же, что в переменных Railway (API_KEY)
+    apiKey:  '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20',                         // тот же, что в переменных Railway (API_KEY)
     pollMs: 1500,
     timeoutMs: 20000,
     totalTimeoutMs: 180000, // 3 минуты
