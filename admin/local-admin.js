@@ -1,31 +1,29 @@
 /* ====== Локальная админка (гибрид) ======
  * - Категории/товары редактируются локально
  * - «Внести изменения» шлёт POST /push и опрашивает /status/:id
- * - Добавлены: загрузка фото в репо /upload и удаление /media/delete (safe)
+ * - Загрузка фото: теперь перед отправкой происходит client-side сжатие в WebP
+ * - Удаление фото: /media/delete (safe), если картинка больше не используется
  */
 
 const CONFIG = {
-  // авторизация
   username: 'forfriends',
-  // ВНИМАНИЕ: сейчас passHash = API-ключу. Для входа это ок, но лучше позже поставить хэш от "forfriends:<пароль>:ForFriends#Pepper-2025".
+  // NOTE: позже лучше поменять на SHA256("forfriends:<пароль>:ForFriends#Pepper-2025")
   passHash: '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20',
   pepper:   'ForFriends#Pepper-2025',
   tokenKey: 'ff_admin_token',
   tokenTtlHours: 12,
 
-  // источники данных каталога (локальные JSON из репо)
   paths: {
     cats: '../data/categories.json',
     prods: '../data/products.json',
   },
 
-  // синк на Railway
   sync: {
     baseUrl: 'https://forfriends-sync-production.up.railway.app',
     apiKey:  '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20',
     pollMs: 1500,
     timeoutMs: 20000,
-    totalTimeoutMs: 180000, // 3 минуты
+    totalTimeoutMs: 180000,
   },
 };
 
@@ -54,22 +52,57 @@ function logLine(s){
   if (box) box.textContent = `[${ts}] ${s}\n` + box.textContent;
 }
 
-/* ====== Media helpers (upload/delete) ====== */
+/* ====== Media helpers (upload/compress/delete) ====== */
 function isRepoImageUrl(url) {
   if (!url) return false;
   try {
     const u = new URL(url, 'https://dummy/');
     return u.pathname.includes('/images/');
   } catch {
-    // относительный путь
     return String(url).startsWith('images/');
   }
 }
+
+// Сжатие изображения на клиенте → WebP
+async function compressImage(file, { maxSide = 1200, quality = 0.82 } = {}) {
+  // читаем исходник
+  const url = URL.createObjectURL(file);
+  const img = await new Promise((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = rej;
+    i.src = url;
+  });
+
+  // считаем размеры
+  let { width, height } = img;
+  const k = Math.max(width, height) / maxSide;
+  if (k > 1) { width = Math.round(width / k); height = Math.round(height / k); }
+
+  // рисуем на canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, width, height);
+
+  // в webp blob
+  const blob = await new Promise((resolve) =>
+    canvas.toBlob(resolve, 'image/webp', quality)
+  );
+
+  const nameBase = (file.name || 'photo').replace(/\.[^.]+$/,'').replace(/[^a-z0-9_.-]/gi,'_');
+  return new File([blob], `${nameBase}.webp`, { type: 'image/webp' });
+}
+
+// Отправка файла на сервер
 async function uploadImageFile(file) {
   const base = CONFIG.sync.baseUrl.replace(/\/+$/, '');
   const key  = (CONFIG.sync.apiKey || '').trim();
+
   const fd = new FormData();
   fd.append('file', file);
+
   const r = await fetch(`${base}/upload`, {
     method: 'POST',
     headers: { 'x-api-key': key },
@@ -78,16 +111,17 @@ async function uploadImageFile(file) {
   if (!r.ok) throw new Error('upload_failed');
   const data = await r.json();
   if (!data?.url) throw new Error('bad_upload_response');
-  return data.url; // абсолютный URL GH Pages
+  return data.url;
 }
+
+// Безопасное удаление файла (если больше не используется)
 async function deleteImageIfUnused(url) {
-  // если фото используется хотя бы в одном товаре — не удаляем
   const stillUsed = state.prods.some(p => (p.photo||'').trim() === (url||'').trim());
   if (stillUsed) return;
   if (!isRepoImageUrl(url)) return;
 
   try {
-    const base = CONFIG.sync.baseUrl.replace(/\/+$/, '');
+    const base = CONFIG.sync.baseUrl.replace(/\/+$/,'');
     const key  = (CONFIG.sync.apiKey || '').trim();
     const r = await fetch(`${base}/media/delete`, {
       method: 'POST',
@@ -95,7 +129,7 @@ async function deleteImageIfUnused(url) {
       body: JSON.stringify({ url })
     });
     if (r.ok) logLine('media: удалено ' + url);
-  } catch (e) {
+  } catch {
     logLine('media: не удалось удалить (см. логи)');
   }
 }
@@ -182,15 +216,9 @@ function renderProds(){
     row.querySelector('[data-edit]').onclick = ()=>{ fillProdForm(p); state.editId = p.id; };
     row.querySelector('[data-del]').onclick  = async ()=>{
       if (!confirm(`Удалить товар «${p.title}»?`)) return;
-
-      // сохраним URL фото до удаления
       const photoUrl = (p.photo || '').trim();
-
-      // удаляем товар из локального списка
       state.prods.splice(i,1);
       renderProds();
-
-      // если фото из нашего репо и его больше никто не использует — удалим файл на сервере
       if (photoUrl && isRepoImageUrl(photoUrl)) {
         const stillUsed = state.prods.some(x => (x.photo||'').trim() === photoUrl);
         if (!stillUsed) await deleteImageIfUnused(photoUrl);
@@ -350,15 +378,20 @@ async function boot(){
   };
   $('#resetProdBtn').onclick = clearProdForm;
 
-  // Загрузка фото
+  // Загрузка фото с предварительным сжатием
   $('#btn-upload').onclick = async () => {
     const inp = $('#p_file');
-    const file = inp?.files?.[0];
-    if (!file) { alert('Выберите файл'); return; }
+    const orig = inp?.files?.[0];
+    if (!orig) { alert('Выберите файл'); return; }
     try {
       $('#btn-upload').disabled = true;
-      logLine('media: загрузка...');
-      const url = await uploadImageFile(file);
+
+      logLine('media: сжатие…');
+      const compressed = await compressImage(orig, { maxSide: 1200, quality: 0.82 });
+
+      logLine(`media: загрузка (${Math.round(compressed.size/1024)} КБ)…`);
+      const url = await uploadImageFile(compressed);
+
       $('#p_photo').value = url;
       logLine('media: загружено');
     } catch (e) {
