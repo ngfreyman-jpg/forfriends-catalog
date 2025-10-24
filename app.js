@@ -126,6 +126,29 @@
     }
   }
 
+  // === 1.6) Делегирование кликов по кнопке "Открыть" в карточках ===
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.card .btn');
+    if (!btn) return;
+
+    e.preventDefault();
+    const card = btn.closest('.card');
+    const id = card?.dataset?.id;
+
+    // текущий набор товаров: отфильтрованный или весь
+    const list = (window.state?.filtered && window.state.filtered.length)
+      ? window.state.filtered
+      : (window.state?.products || []);
+
+    let product = id ? list.find(p => String(p.id) === String(id)) : null;
+
+    if (!product) {
+      const title = card.querySelector('.title')?.textContent?.trim();
+      product = list.find(p => p.title === title) || null;
+    }
+    if (product) openModal(product);
+  });
+
   // === 2) Универсальная загрузка: Railway → fallback JSON
   async function getJSON(localPath, apiPath) {
     try {
@@ -148,6 +171,9 @@
   ]).then(([prodsData, catsData]) => {
     const products   = toItems(prodsData);
     const categories = toItems(catsData);
+
+    // сохраним в window.state для делегирования
+    window.state = { products, filtered: [] };
 
     // Всегда стартуем с «Все»
     let activeCat = "Все";
@@ -235,6 +261,9 @@
       (p) => activeCat === "Все" || p.category === activeCat
     );
 
+    // сохраним текущую выборку для делегирования
+    window.state.filtered = list;
+
     if (list.length === 0) {
       $grid.innerHTML =
         `<div class="empty">Тут пока пусто. Добавьте товары в <code>data/products.json</code>.</div>`;
@@ -244,6 +273,7 @@
     list.forEach((it) => {
       const card = document.createElement("div");
       card.className = "card";
+      card.dataset.id = it.id; // ← ВАЖНО: привязка карточки к товару
 
       const photo = it.photo?.trim() || PLACEHOLDER;
 
@@ -267,8 +297,8 @@
         <button class="btn">Открыть</button>
       `;
 
-      // Раньше тут открывали внешнюю ссылку. Теперь — модалку с данными товара.
-      card.querySelector(".btn").onclick = () => openModal(it);
+      // Локальный обработчик уже не обязателен, но не мешает:
+      // card.querySelector(".btn").onclick = () => openModal(it);
 
       $grid.appendChild(card);
     });
