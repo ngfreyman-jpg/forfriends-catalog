@@ -1,7 +1,7 @@
 /* ====== Локальная админка (гибрид) ======
  * - Категории/товары редактируются локально
  * - «Внести изменения» шлёт POST /push и опрашивает /status/:id
- * - Загрузка фото: теперь перед отправкой происходит client-side сжатие в WebP
+ * - Загрузка фото: client-side сжатие → WebP + SHA-1 хэш имени (дедуп)
  * - Удаление фото: /media/delete (safe), если картинка больше не используется
  */
 
@@ -63,9 +63,8 @@ function isRepoImageUrl(url) {
   }
 }
 
-// Сжатие изображения на клиенте → WebP
+// Сжатие изображения на клиенте → WebP (без кропа; по желанию можно добавить кроп 4:5)
 async function compressImage(file, { maxSide = 1200, quality = 0.82 } = {}) {
-  // читаем исходник
   const url = URL.createObjectURL(file);
   const img = await new Promise((res, rej) => {
     const i = new Image();
@@ -74,19 +73,16 @@ async function compressImage(file, { maxSide = 1200, quality = 0.82 } = {}) {
     i.src = url;
   });
 
-  // считаем размеры
   let { width, height } = img;
   const k = Math.max(width, height) / maxSide;
   if (k > 1) { width = Math.round(width / k); height = Math.round(height / k); }
 
-  // рисуем на canvas
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0, width, height);
 
-  // в webp blob
   const blob = await new Promise((resolve) =>
     canvas.toBlob(resolve, 'image/webp', quality)
   );
@@ -95,13 +91,24 @@ async function compressImage(file, { maxSide = 1200, quality = 0.82 } = {}) {
   return new File([blob], `${nameBase}.webp`, { type: 'image/webp' });
 }
 
-// Отправка файла на сервер
-async function uploadImageFile(file) {
+// SHA-1 хэш для Blob/File (для имени файла)
+async function sha1OfBlob(blob) {
+  const buf = await blob.arrayBuffer();
+  const hash = await crypto.subtle.digest('SHA-1', buf);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// Отправка файла на сервер: кладём как <sha1>.webp (сервер дедуплит)
+async function uploadImageFile(webpFile) {
   const base = CONFIG.sync.baseUrl.replace(/\/+$/, '');
   const key  = (CONFIG.sync.apiKey || '').trim();
 
+  // считаем хэш уже сжатого файла
+  const h = await sha1OfBlob(webpFile);
+  const named = new File([webpFile], `${h}.webp`, { type: 'image/webp' });
+
   const fd = new FormData();
-  fd.append('file', file);
+  fd.append('file', named, named.name);
 
   const r = await fetch(`${base}/upload`, {
     method: 'POST',
@@ -111,6 +118,7 @@ async function uploadImageFile(file) {
   if (!r.ok) throw new Error('upload_failed');
   const data = await r.json();
   if (!data?.url) throw new Error('bad_upload_response');
+  if (data.dedup) logLine('media: дубликат — использую существующий файл');
   return data.url;
 }
 
@@ -378,7 +386,7 @@ async function boot(){
   };
   $('#resetProdBtn').onclick = clearProdForm;
 
-  // Загрузка фото с предварительным сжатием
+  // Загрузка фото: сжатие → sha1 имя → upload
   $('#btn-upload').onclick = async () => {
     const inp = $('#p_file');
     const orig = inp?.files?.[0];
@@ -393,13 +401,17 @@ async function boot(){
       const url = await uploadImageFile(compressed);
 
       $('#p_photo').value = url;
+      if (state.editId) {
+        const i = state.prods.findIndex(x => x.id === state.editId);
+        if (i >= 0) { state.prods[i].photo = url; renderProds(); }
+      }
       logLine('media: загружено');
     } catch (e) {
       alert('Не удалось загрузить фото');
       logLine('media: ошибка загрузки');
     } finally {
       $('#btn-upload').disabled = false;
-      if ($('#p_file')) $('#p_file').value = '';
+      if (inp) inp.value = '';
     }
   };
 
