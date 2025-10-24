@@ -17,6 +17,7 @@
 
   const $grid = document.getElementById("grid");
   const $tabs = document.getElementById("tabs");
+  const $catSelect = document.getElementById("catSelect"); // NEW: мобильный селект
 
   // Плейсхолдер 800×1000 под рамку 4:5
   const PLACEHOLDER =
@@ -57,11 +58,20 @@
     let activeCat = "Все";
 
     renderTabs(categories, activeCat, onTabClick);
+    renderSelect(categories, activeCat, onSelectChange); // NEW
     renderList(products, activeCat);
 
     function onTabClick(title) {
       activeCat = title;
       renderTabs(categories, activeCat, onTabClick);
+      renderSelect(categories, activeCat, onSelectChange);
+      renderList(products, activeCat);
+    }
+
+    function onSelectChange(title) {
+      activeCat = title;
+      renderTabs(categories, activeCat, onTabClick);
+      renderSelect(categories, activeCat, onSelectChange);
       renderList(products, activeCat);
     }
   }).catch((e) => {
@@ -88,6 +98,36 @@
       b.onclick = () => onClick(c.title);
       $tabs.appendChild(b);
     });
+
+    // мягко центрируем активный чип, если он вне видимости
+    const activeEl = $tabs.querySelector('.tab.active');
+    if (activeEl && typeof activeEl.scrollIntoView === 'function') {
+      activeEl.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+    }
+  }
+
+  // === 4.1) Рендер мобильного селекта (NEW)
+  function renderSelect(categories, activeCat, onChange) {
+    if (!$catSelect) return;
+
+    const seen = new Set(["Все"]);
+    const list = [{ title: "Все" }, ...categories.filter(c => {
+      const t = (c.title || "").trim();
+      if (!t || seen.has(t)) return false;
+      seen.add(t);
+      return true;
+    })];
+
+    $catSelect.innerHTML = "";
+    list.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.title;
+      opt.textContent = c.title;
+      if (c.title === activeCat) opt.selected = true;
+      $catSelect.appendChild(opt);
+    });
+
+    $catSelect.onchange = () => onChange($catSelect.value);
   }
 
   // === 5) Рендер карточек (lazy + фикс 4:5 через .media)
