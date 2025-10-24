@@ -163,10 +163,19 @@
       white-space:nowrap;
     }
 
+    /* === Плашка цены: full width + центрирование === */
     .card .price{
-      display:inline-flex;align-items:center;gap:6px;font-weight:700;
-      color:#0b0f14;padding:6px 10px;border-radius:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center; /* центрируем текст */
+      gap:6px;
+      font-weight:700;
+      color:#0b0f14;
+      padding:10px 12px;
+      border-radius:12px;
       background:linear-gradient(90deg,var(--acid),var(--acid-2));
+      width:100%;            /* на всю ширину */
+      text-align:center;
     }
 
     .btn{
