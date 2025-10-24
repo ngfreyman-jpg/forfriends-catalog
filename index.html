@@ -29,7 +29,7 @@
       font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     }
 
-    /* Header */
+    /* ===== Header: только логотип ===== */
     .ff-header{
       position:sticky; top:0; z-index:50; backdrop-filter:blur(8px);
       background:linear-gradient(180deg,rgba(16,18,23,.75),rgba(16,18,23,.35));
@@ -37,17 +37,16 @@
     }
     .ff-header__inner{
       max-width:1100px; margin:0 auto; padding:14px 18px;
-      display:flex; align-items:center; gap:14px;
+      display:flex; align-items:center; justify-content:flex-start;
     }
-    .ff-logo{height:36px;width:auto;filter:drop-shadow(0 0 10px rgba(215,255,63,.25))}
-    .ff-brand{display:flex;align-items:baseline;gap:10px}
-    .ff-brand__title{font:700 20px/1.2 "Manrope",Inter,system-ui;letter-spacing:.2px}
-    .ff-brand__tag{
-      font:600 11px/1 Inter;color:#0b0f14;background:var(--acid);
-      padding:6px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.8px;
+    .ff-logo{
+      height:40px; width:auto; object-fit:contain;
+      filter:drop-shadow(0 0 10px rgba(215,255,63,.18));
     }
-    @media (min-width:700px){ .ff-logo{height:48px}.ff-brand__title{font-size:22px}.ff-header__inner{padding:16px 18px} }
-    @media (min-width:1100px){ .ff-logo{height:64px}.ff-brand__title{font-size:24px}.ff-brand__tag{padding:7px 10px;font-size:12px}.ff-header__inner{padding:18px 20px} }
+    @media (min-width:700px){ .ff-logo{height:52px} .ff-header__inner{padding:16px 18px} }
+    @media (min-width:1100px){ .ff-logo{height:64px} .ff-header__inner{padding:18px 20px} }
+    /* на всякий случай скрываем старые классы, если где-то остались */
+    .ff-brand, .ff-brand__title, .ff-brand__tag{ display:none !important; }
 
     /* Контейнер */
     .wrap{max-width:1100px;margin:0 auto;padding:14px 18px}
@@ -93,12 +92,7 @@
       border-color:transparent;
       box-shadow:0 0 0 4px rgba(215,255,63,.12),0 8px 24px rgba(215,255,63,.18);
     }
-
-    /* На узких экранах показываем кнопку и прячем чипы */
-    @media (max-width:700px){
-      .filters{ display:flex; }
-      .tabs{ display:none; }
-    }
+    @media (max-width:700px){ .filters{ display:flex } .tabs{ display:none } }
 
     /* Сетка карточек */
     #grid{display:grid;gap:18px;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -135,51 +129,35 @@
     /* Инфо-блок тянем, чтобы утопить кнопку вниз */
     .card .info{
       padding:14px 14px 10px;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
+      display:flex; flex-direction:column; gap:8px;
       flex:1 1 auto;
     }
 
-    /* Заголовок: максимум 2 строки, фикс-высота под 2 строки + центр */
+    /* Заголовок — 2 строки + центр */
     .card .title{
-      font-weight:600;
-      line-height:1.2;
-      display:-webkit-box;
-      -webkit-line-clamp:2;
-      -webkit-box-orient:vertical;
-      overflow:hidden;
-      min-height: calc(1.2em * 2);
+      font-weight:600; line-height:1.2;
+      display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+      overflow:hidden; min-height: calc(1.2em * 2);
       text-align:center;
     }
 
-    /* SKU: одна строка фикс + центр */
+    /* SKU — 1 строка + центр */
     .card .sku{
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.2;
-      min-height: 1.2em;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
+      color:var(--muted); font-size:12px; line-height:1.2;
+      min-height:1.2em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
       text-align:center;
     }
 
-    /* === Плашка цены: full width + центрирование === */
+    /* Цена — full-width + центр */
     .card .price{
-      display:flex;
-      align-items:center;
-      justify-content:center; /* центрируем текст */
-      gap:6px;
-      font-weight:700;
-      color:#0b0f14;
-      padding:10px 12px;
-      border-radius:12px;
+      display:flex; align-items:center; justify-content:center;
+      gap:6px; font-weight:700; color:#0b0f14;
+      padding:10px 12px; border-radius:12px;
       background:linear-gradient(90deg,var(--acid),var(--acid-2));
-      width:100%;            /* на всю ширину */
-      text-align:center;
+      width:100%; text-align:center;
     }
 
+    /* Кнопка */
     .btn{
       background:#1b2331;color:#cfe1ff;border:1px solid #2a354a;border-radius:12px;
       padding:10px 12px;margin:12px;cursor:pointer;transition:.15s;font-weight:600;
@@ -199,19 +177,21 @@
 </head>
 <body>
 
-  <!-- Хедер -->
+  <!-- Хедер: только логотип -->
   <header class="ff-header">
     <div class="ff-header__inner">
-      <img src="./images/brand/forfriends-logo.png" alt="Для своих" class="ff-logo">
-      <div class="ff-brand">
-        <span class="ff-brand__title">Для своих</span>
-        <span class="ff-brand__tag">store</span>
-      </div>
+      <img
+        src="./images/brand/forfriends-logo.png"
+        alt="Для своих"
+        class="ff-logo"
+        width="200" height="56"
+        decoding="async"
+      />
     </div>
   </header>
 
   <div class="wrap">
-    <!-- Мобильный фильтр по категориям (кнопка) -->
+    <!-- Мобильный фильтр -->
     <div class="filters">
       <span class="filters__label">Категория</span>
       <button id="catBtn" class="filters__button">
@@ -219,13 +199,13 @@
       </button>
     </div>
 
-    <!-- Чипы (показываются только на планшет/десктоп) -->
+    <!-- Чипы (планшет/десктоп) -->
     <div id="tabs" class="tabs"></div>
 
     <main id="grid"></main>
   </div>
 
-  <!-- Bottom sheet со списком категорий -->
+  <!-- Bottom sheet категорий -->
   <div id="catSheet" class="sheet hidden">
     <div class="sheet__backdrop"></div>
     <div class="sheet__panel">
