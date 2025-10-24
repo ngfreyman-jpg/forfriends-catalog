@@ -95,7 +95,7 @@
       box-shadow:0 12px 40px rgba(0,0,0,.45),0 0 0 4px rgba(215,255,63,.06) inset;
     }
 
-    /* ======= ПАТЧ: жёсткая «рамка» 4:5 для фото ======= */
+    /* Рамка 4:5 под фото */
     .card .media{
       position:relative;width:100%;
       padding-top:125%; /* 4:5 */
@@ -108,27 +108,48 @@
       width:100%; height:100%;
       object-fit:cover; display:block;
     }
-    /* ================================================ */
 
-    /* Патч: выравниваем кнопку по низу карточки */
+    /* Инфо-блок тянем, чтобы утопить кнопку вниз */
     .card .info{
       padding:14px 14px 10px;
-      display:flex;             /* NEW */
-      flex-direction:column;    /* NEW */
-      gap:6px;                  /* NEW */
-      flex:1 1 auto;            /* NEW — растягиваем инфоблок */
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      flex:1 1 auto;
     }
-    .card .title{font-weight:600}
-    .card .sku{color:var(--muted);font-size:12px}
+
+    /* Заголовок: максимум 2 строки, фикс высота под 2 строки */
+    .card .title{
+      font-weight:600;
+      line-height:1.2;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+      min-height: calc(1.2em * 2);
+    }
+
+    /* SKU: одна строка фикс */
+    .card .sku{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.2;
+      min-height: 1.2em;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
     .card .price{
       display:inline-flex;align-items:center;gap:6px;font-weight:700;
       color:#0b0f14;padding:6px 10px;border-radius:10px;
       background:linear-gradient(90deg,var(--acid),var(--acid-2));
     }
+
     .btn{
       background:#1b2331;color:#cfe1ff;border:1px solid #2a354a;border-radius:12px;
       padding:10px 12px;margin:12px;cursor:pointer;transition:.15s;font-weight:600;
-      margin-top:auto;          /* NEW — прибиваем к низу */
+      margin-top:auto; /* прибиваем к низу */
     }
     .btn:hover{border-color:#3a4a66;transform:translateY(-1px)}
     .btn:active{transform:translateY(0);box-shadow:inset 0 0 0 999px rgba(255,255,255,.04)}
