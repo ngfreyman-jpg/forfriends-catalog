@@ -15,9 +15,14 @@
     });
   } catch {}
 
-  const $grid = document.getElementById("grid");
-  const $tabs = document.getElementById("tabs");
-  const $catSelect = document.getElementById("catSelect"); // NEW: мобильный селект
+  const $grid  = document.getElementById("grid");
+  const $tabs  = document.getElementById("tabs");
+
+  // NEW: мобильная кнопка + кастомный список
+  const $catBtn       = document.getElementById("catBtn");
+  const $catBtnText   = document.getElementById("catBtnText");
+  const $catSheet     = document.getElementById("catSheet");
+  const $catSheetList = document.getElementById("catSheetList");
 
   // Плейсхолдер 800×1000 под рамку 4:5
   const PLACEHOLDER =
@@ -57,21 +62,14 @@
     // Всегда стартуем с «Все»
     let activeCat = "Все";
 
-    renderTabs(categories, activeCat, onTabClick);
-    renderSelect(categories, activeCat, onSelectChange); // NEW
+    renderTabs(categories, activeCat, onChangeCat);
+    renderMobilePicker(categories, activeCat, onChangeCat); // NEW
     renderList(products, activeCat);
 
-    function onTabClick(title) {
+    function onChangeCat(title) {
       activeCat = title;
-      renderTabs(categories, activeCat, onTabClick);
-      renderSelect(categories, activeCat, onSelectChange);
-      renderList(products, activeCat);
-    }
-
-    function onSelectChange(title) {
-      activeCat = title;
-      renderTabs(categories, activeCat, onTabClick);
-      renderSelect(categories, activeCat, onSelectChange);
+      renderTabs(categories, activeCat, onChangeCat);
+      renderMobilePicker(categories, activeCat, onChangeCat);
       renderList(products, activeCat);
     }
   }).catch((e) => {
@@ -79,7 +77,7 @@
     $grid.innerHTML = `<div class="empty">Не удалось загрузить каталог. Попробуйте обновить страницу.</div>`;
   });
 
-  // === 4) Рендер вкладок
+  // === 4) Рендер вкладок (чипы для планшет/десктоп)
   function renderTabs(categories, activeCat, onClick) {
     $tabs.innerHTML = "";
 
@@ -99,16 +97,13 @@
       $tabs.appendChild(b);
     });
 
-    // мягко центрируем активный чип, если он вне видимости
     const activeEl = $tabs.querySelector('.tab.active');
-    if (activeEl && typeof activeEl.scrollIntoView === 'function') {
-      activeEl.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
-    }
+    activeEl?.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
   }
 
-  // === 4.1) Рендер мобильного селекта (NEW)
-  function renderSelect(categories, activeCat, onChange) {
-    if (!$catSelect) return;
+  // === 4.1) Мобильный пикер: кнопка + bottom-sheet (вместо <select>)
+  function renderMobilePicker(categories, activeCat, onPick) {
+    if (!$catBtn || !$catBtnText || !$catSheet || !$catSheetList) return;
 
     const seen = new Set(["Все"]);
     const list = [{ title: "Все" }, ...categories.filter(c => {
@@ -118,17 +113,32 @@
       return true;
     })];
 
-    $catSelect.innerHTML = "";
+    // Текст на кнопке
+    $catBtnText.textContent = activeCat;
+
+    // Наполнение списка
+    $catSheetList.innerHTML = "";
     list.forEach(c => {
-      const opt = document.createElement("option");
-      opt.value = c.title;
-      opt.textContent = c.title;
-      if (c.title === activeCat) opt.selected = true;
-      $catSelect.appendChild(opt);
+      const item = document.createElement('button');
+      item.type = "button";
+      item.className = 'sheet__item' + (c.title === activeCat ? ' active' : '');
+      item.textContent = c.title;
+      item.onclick = () => {
+        closeSheet();
+        onPick(c.title);
+        try { tg?.HapticFeedback?.selectionChanged(); } catch {}
+      };
+      $catSheetList.appendChild(item);
     });
 
-    $catSelect.onchange = () => onChange($catSelect.value);
+    // Открытие/закрытие
+    $catBtn.onclick = openSheet;
+    const $backdrop = $catSheet.querySelector('.sheet__backdrop');
+    $backdrop.onclick = closeSheet;
   }
+
+  function openSheet() { $catSheet.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+  function closeSheet() { $catSheet.classList.add('hidden');   document.body.style.overflow = '';       }
 
   // === 5) Рендер карточек (lazy + фикс 4:5 через .media)
   function renderList(products, activeCat) {
