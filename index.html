@@ -31,13 +31,39 @@
       max-width:1100px; margin:0 auto; padding:14px 18px;
       display:flex; align-items:center; justify-content:flex-start;
     }
-    /* Увеличила логотип */
-    .ff-logo{
-      height:64px; width:auto; object-fit:contain;
-      filter:drop-shadow(0 0 10px rgba(215,255,63,.18));
+
+    /* Обёртка, чтобы положить «свечение» под логотип */
+    .ff-logo-wrap{ position:relative; display:inline-flex; }
+    .ff-logo-wrap::before{
+      content:""; position:absolute; inset:auto; left:50%; bottom:-6px;
+      translate:-50% 0; pointer-events:none;
+      width:clamp(180px,30vw,420px); height:clamp(40px,8vw,120px);
+      background:radial-gradient(60% 60% at 50% 50%,
+        rgba(215,255,63,.32) 0%,
+        rgba(215,255,63,.10) 55%,
+        rgba(215,255,63,0) 75%);
+      filter:blur(18px); opacity:.9;
     }
-    @media (min-width:700px){ .ff-logo{height:80px} .ff-header__inner{padding:16px 18px} }
-    @media (min-width:1100px){ .ff-logo{height:96px} .ff-header__inner{padding:18px 20px} }
+
+    /* Лого: чуть меньше + мягкие неоновые тени */
+    .ff-logo{
+      height:56px; width:auto; object-fit:contain;
+      /* несколько слоёв, чтобы качество не резало глаз */
+      filter:
+        drop-shadow(0 0 6px  rgba(215,255,63,.22))
+        drop-shadow(0 0 14px rgba(215,255,63,.16))
+        drop-shadow(0 0 28px rgba(215,255,63,.10));
+    }
+    @media (min-width:700px){
+      .ff-logo{height:72px}
+      .ff-header__inner{padding:16px 18px}
+      .ff-logo-wrap::before{ bottom:-8px }
+    }
+    @media (min-width:1100px){
+      .ff-logo{height:88px}
+      .ff-header__inner{padding:18px 20px}
+      .ff-logo-wrap::before{ bottom:-10px }
+    }
     .ff-brand, .ff-brand__title, .ff-brand__tag{ display:none !important; }
 
     /* Контейнер */
@@ -154,13 +180,15 @@
   <!-- Хедер: только логотип -->
   <header class="ff-header">
     <div class="ff-header__inner">
-      <img
-        src="./images/brand/forfriends-wordmark.png"
-        alt="Для своих"
-        class="ff-logo"
-        width="400" height="120"
-        decoding="async"
-      />
+      <span class="ff-logo-wrap">
+        <img
+          src="./images/brand/forfriends-wordmark.png"
+          alt="Для своих"
+          class="ff-logo"
+          width="360" height="112"
+          decoding="async"
+        />
+      </span>
     </div>
   </header>
 
