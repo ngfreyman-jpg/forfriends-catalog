@@ -7,7 +7,6 @@
 
 const CONFIG = {
   username: 'forfriends',
-  // NOTE: позже лучше поменять на SHA256("forfriends:<пароль>:ForFriends#Pepper-2025")
   passHash: 'a841ff9a9a6d1ccc1549f1acded578a2b37cf31813cd0a594ca1f1833b09d09d',
   pepper:   'ForFriends#Pepper-2025',
   tokenKey: 'ff_admin_token',
