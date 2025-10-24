@@ -214,7 +214,7 @@
 <body>
 
   <!-- Хедер: только логотип -->
-  <header class="ff-header">
+  <header class="ff-header" id="appHeader">
     <div class="ff-header__inner">
       <span class="ff-logo-wrap">
         <img
@@ -228,35 +228,43 @@
     </div>
   </header>
 
-  <div class="wrap">
+  <div class="wrap" id="appMain">
     <!-- Мобильный фильтр -->
     <div class="filters">
       <span class="filters__label">Категория</span>
-      <button id="catBtn" class="filters__button">
+      <button id="catBtn" class="filters__button" type="button" aria-haspopup="dialog" aria-controls="catSheet"> 
         <span id="catBtnText">Все</span>
       </button>
     </div>
 
     <!-- Чипы (планшет/десктоп) -->
-    <div id="tabs" class="tabs"></div>
+    <div id="tabs" class="tabs" role="tablist" aria-label="Категории"></div>
 
     <main id="grid"></main>
   </div>
 
   <!-- Bottom sheet категорий -->
-  <div id="catSheet" class="sheet hidden">
-    <div class="sheet__backdrop"></div>
-    <div class="sheet__panel">
-      <div class="sheet__handle"></div>
-      <div class="sheet__list" id="catSheetList"></div>
+  <div id="catSheet" class="sheet hidden" role="dialog" aria-modal="true" aria-labelledby="catBtn">
+    <div class="sheet__backdrop" aria-hidden="true"></div>
+    <div class="sheet__panel" tabindex="-1">
+      <div class="sheet__handle" aria-hidden="true"></div>
+      <div class="sheet__list" id="catSheetList" role="listbox" aria-label="Выбор категории"></div>
     </div>
   </div>
 
   <!-- ===== Product Modal ===== -->
-  <div id="productModal" class="modal" aria-hidden="true">
-    <div class="modal__backdrop" data-close="pm"></div>
-    <div class="modal__panel">
-      <button class="pm__close" data-close="pm">Закрыть</button>
+  <div
+    id="productModal"
+    class="modal"
+    aria-hidden="true"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="pm_title"
+    aria-describedby="pm_desc"
+  >
+    <div class="modal__backdrop" data-close="pm" aria-hidden="true"></div>
+    <div class="modal__panel" id="pm_panel" tabindex="-1">
+      <button class="pm__close" data-close="pm" type="button" aria-label="Закрыть модальное окно">Закрыть</button>
       <div class="pm__media"><img id="pm_photo" alt=""></div>
       <div class="pm__body">
         <div class="pm__title" id="pm_title"></div>
@@ -265,16 +273,16 @@
         <div class="pm__desc" id="pm_desc"></div>
 
         <!-- Новое: комментарий + кнопки -->
-        <textarea id="pm_comment" class="pm__comment" placeholder="Комментарий к заказу (размер, цвет, адрес, время и т. п.)"></textarea>
+        <textarea id="pm_comment" class="pm__comment" placeholder="Комментарий к заказу (размер, цвет, адрес, время и т. п.)" aria-label="Комментарий к заказу"></textarea>
         <div class="pm__actions">
-          <button id="pm_add" class="pm__btn">Добавить</button>
-          <button id="pm_submit" class="pm__btn pm__btn--primary">Отправить продавцу</button>
+          <button id="pm_add" class="pm__btn" type="button">Добавить</button>
+          <button id="pm_submit" class="pm__btn pm__btn--primary" type="button">Отправить продавцу</button>
         </div>
       </div>
     </div>
   </div>
 
   <!-- увеличил v для сброса кеша -->
-  <script src="./app.js?v=6" defer></script>
+  <script src="./app.js?v=7" defer></script>
 </body>
 </html>
