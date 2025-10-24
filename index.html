@@ -47,6 +47,22 @@
       padding:6px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.8px;
     }
 
+    /* =================== Патч: крупнее лого в хедере =================== */
+    /* планшет ≥700px */
+    @media (min-width:700px){
+      .ff-logo{ height:48px; }
+      .ff-brand__title{ font-size:22px; }
+      .ff-header__inner{ padding:16px 18px; }
+    }
+    /* десктоп ≥1100px */
+    @media (min-width:1100px){
+      .ff-logo{ height:64px; }
+      .ff-brand__title{ font-size:24px; letter-spacing:.3px; }
+      .ff-brand__tag{ padding:7px 10px; font-size:12px; }
+      .ff-header__inner{ padding:18px 20px; }
+    }
+    /* ================================================================== */
+
     /* Контейнер */
     .wrap{max-width:1100px;margin:0 auto;padding:14px 18px}
 
@@ -113,7 +129,7 @@
   <!-- Хедер -->
   <header class="ff-header">
     <div class="ff-header__inner">
-      <!-- поменяй путь, если логотип PNG -->
+      <!-- поменяй путь, если логотип PNG/SVG другой -->
       <img src="./images/brand/forfriends-logo.png" alt="Для своих" class="ff-logo">
       <div class="ff-brand">
         <span class="ff-brand__title">Для своих</span>
