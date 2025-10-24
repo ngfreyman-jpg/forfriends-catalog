@@ -150,6 +150,34 @@ async function verifyLogin(login, pass){
 /* ============ Состояние ============ */
 const state = { cats: [], prods: [], editId: null };
 
+/* ---------- Грязное состояние (unsaved changes) ---------- */
+let isDirty = false;
+const pushBtn = () => $('#btn-push');
+function refreshDirtyUI() {
+  const b = pushBtn();
+  if (b) b.textContent = isDirty ? 'Внести изменения • несохранено' : 'Внести изменения';
+}
+function markDirty() {
+  if (!isDirty) {
+    isDirty = true;
+    refreshDirtyUI();
+    logLine('✎ Изменения не синхронизированы');
+  }
+}
+function clearDirty() {
+  if (isDirty) {
+    isDirty = false;
+    refreshDirtyUI();
+    logLine('✓ Все изменения синхронизированы');
+  }
+}
+// предупреждение при закрытии вкладки
+window.addEventListener('beforeunload', (e) => {
+  if (!isDirty) return;
+  e.preventDefault();
+  e.returnValue = '';
+});
+
 /* ============ Клиентская предвалидация/нормализация ============ */
 function normStr(s){ return String(s||'').replace(/\s+/g,' ').trim(); }
 function isHttpsUrl(u){
@@ -213,6 +241,8 @@ async function loadAll(){
   state.prods = prods;
   renderCats(); renderProdFormOptions(); renderProds();
   $('#statusText').textContent = `Категорий: ${cats.length} • Товаров: ${prods.length}`;
+  clearDirty(); // начальное состояние считаем чистым
+  refreshDirtyUI();
 }
 
 function renderCats(){
@@ -230,6 +260,7 @@ function renderCats(){
       if (confirm(`Удалить категорию «${c.title}»?`)){
         state.cats.splice(i,1);
         renderCats(); renderProdFormOptions();
+        markDirty();
       }
     };
     box.appendChild(row);
@@ -266,6 +297,7 @@ function renderProds(){
       const photoUrl = (p.photo || '').trim();
       state.prods.splice(i,1);
       renderProds();
+      markDirty();
       if (photoUrl && isRepoImageUrl(photoUrl)) {
         const stillUsed = state.prods.some(x => (x.photo||'').trim() === photoUrl);
         if (!stillUsed) await deleteImageIfUnused(photoUrl);
@@ -358,7 +390,6 @@ async function pushChanges(){
     const data = await res.json();
     if (!data?.ok || !data?.jobId) throw new Error('Сервер не вернул jobId.');
 
-    // Показать отчёт сервера (что он ещё подчистил)
     if (data.report){
       const { cats, prods } = data.report;
       const lines = [];
@@ -372,6 +403,9 @@ async function pushChanges(){
 
     logLine(`sync: QUEUED job ${data.jobId}`);
     await pollStatus(base, key, data.jobId);
+
+    // если дошли сюда без исключений — считаем, что синк успешен
+    clearDirty();
   }catch(e){
     logLine('sync: ERROR ' + (e.message||e));
   }finally{
@@ -475,6 +509,7 @@ async function boot(){
     state.cats.push({ title: t });
     $('#catTitle').value = '';
     renderCats(); renderProdFormOptions();
+    markDirty();
   };
 
   // товары
@@ -484,6 +519,7 @@ async function boot(){
     const i = state.prods.findIndex(x=>x.id===state.editId);
     if (i>=0) state.prods[i] = p; else state.prods.push(p);
     clearProdForm(); renderProds();
+    markDirty();
   };
   $('#resetProdBtn').onclick = clearProdForm;
 
@@ -507,6 +543,7 @@ async function boot(){
         if (i >= 0) { state.prods[i].photo = url; renderProds(); }
       }
       logLine('media: загружено');
+      markDirty(); // загрузка/смена фото — несохранённое изменение
     } catch (e) {
       alert('Не удалось загрузить фото');
       logLine('media: ошибка загрузки');
@@ -520,6 +557,7 @@ async function boot(){
   $('#btn-push').onclick = pushChanges;
 
   logLine('✓ Ручной синк включён. Нажимай «Внести изменения».');
+  refreshDirtyUI();
 }
 
 boot().catch(e=>{ console.error(e); alert('Ошибка запуска админки. См. консоль.'); });
