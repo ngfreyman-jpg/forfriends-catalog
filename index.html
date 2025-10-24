@@ -46,35 +46,40 @@
       font:600 11px/1 Inter;color:#0b0f14;background:var(--acid);
       padding:6px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.8px;
     }
-
-    /* планшет ≥700px */
-    @media (min-width:700px){
-      .ff-logo{ height:48px; }
-      .ff-brand__title{ font-size:22px; }
-      .ff-header__inner{ padding:16px 18px; }
-    }
-    /* десктоп ≥1100px */
-    @media (min-width:1100px){
-      .ff-logo{ height:64px; }
-      .ff-brand__title{ font-size:24px; letter-spacing:.3px; }
-      .ff-brand__tag{ padding:7px 10px; font-size:12px; }
-      .ff-header__inner{ padding:18px 20px; }
-    }
+    @media (min-width:700px){ .ff-logo{height:48px}.ff-brand__title{font-size:22px}.ff-header__inner{padding:16px 18px} }
+    @media (min-width:1100px){ .ff-logo{height:64px}.ff-brand__title{font-size:24px}.ff-brand__tag{padding:7px 10px;font-size:12px}.ff-header__inner{padding:18px 20px} }
 
     /* Контейнер */
     .wrap{max-width:1100px;margin:0 auto;padding:14px 18px}
 
-    /* ===== Мобильный селект категорий ===== */
+    /* ===== Мобильный фильтр: кнопка + sheet ===== */
     .filters{ display:none; padding:10px 18px 4px; align-items:center; gap:8px; }
     .filters__label{ color:var(--muted); font-size:12px; }
-    .filters__select{
-      appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    .filters__button{
       border:1px solid var(--line); background:#151a22; color:#cfd6e4;
       border-radius:999px; padding:10px 16px; font:600 14px/1 Inter,system-ui;
-      outline:none; cursor:pointer;
-      background-image: linear-gradient(90deg, transparent, transparent);
+      outline:none; cursor:pointer; transition:.15s border-color, .15s transform;
     }
-    .filters__select:focus{ border-color:#324059; }
+    .filters__button:active{ transform:scale(.98) }
+
+    /* Bottom sheet */
+    .sheet.hidden{ display:none }
+    .sheet{ position:fixed; inset:0; z-index:60; }
+    .sheet__backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.5); }
+    .sheet__panel{
+      position:absolute; left:0; right:0; bottom:0;
+      background:#0f131a; border-top-left-radius:16px; border-top-right-radius:16px;
+      box-shadow:0 -10px 30px rgba(0,0,0,.4); max-height:70vh; display:flex; flex-direction:column;
+    }
+    .sheet__handle{ width:44px; height:5px; border-radius:999px; background:#293141; margin:8px auto; }
+    .sheet__list{ overflow:auto; padding:4px 6px 12px; }
+    .sheet__item{
+      display:flex; align-items:center; gap:10px;
+      padding:14px 12px; border-radius:12px; margin:4px 8px;
+      background:#12161d; border:1px solid #1f2734; color:#d6dbe6; font-weight:600;
+    }
+    .sheet__item.active{ border-color:var(--acid); box-shadow:0 0 0 3px rgba(215,255,63,.12) inset; }
+    .sheet__item:active{ transform:translateY(1px) }
 
     /* Табы (чипы) — для десктопа */
     .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px}
@@ -89,7 +94,7 @@
       box-shadow:0 0 0 4px rgba(215,255,63,.12),0 8px 24px rgba(215,255,63,.18);
     }
 
-    /* На узких экранах показываем селект и прячем чипы */
+    /* На узких экранах показываем кнопку и прячем чипы */
     @media (max-width:700px){
       .filters{ display:flex; }
       .tabs{ display:none; }
@@ -195,16 +200,29 @@
   </header>
 
   <div class="wrap">
-    <!-- Мобильный фильтр по категориям -->
+    <!-- Мобильный фильтр по категориям (кнопка) -->
     <div class="filters">
-      <label class="filters__label" for="catSelect">Категория</label>
-      <select id="catSelect" class="filters__select"></select>
+      <span class="filters__label">Категория</span>
+      <button id="catBtn" class="filters__button">
+        <span id="catBtnText">Все</span>
+      </button>
     </div>
 
+    <!-- Чипы (показываются только на планшет/десктоп) -->
     <div id="tabs" class="tabs"></div>
+
     <main id="grid"></main>
   </div>
 
-  <script src="./app.js?v=3" defer></script>
+  <!-- Bottom sheet со списком категорий -->
+  <div id="catSheet" class="sheet hidden">
+    <div class="sheet__backdrop"></div>
+    <div class="sheet__panel">
+      <div class="sheet__handle"></div>
+      <div class="sheet__list" id="catSheetList"></div>
+    </div>
+  </div>
+
+  <script src="./app.js?v=4" defer></script>
 </body>
 </html>
