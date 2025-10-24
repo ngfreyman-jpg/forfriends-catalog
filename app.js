@@ -1,112 +1,150 @@
 (function () {
-  // === 0) Настройка API ===
   const API_BASE = 'https://forfriends-sync-production.up.railway.app';
 
-  // === 1) Telegram WebApp (не мешает вне телеги)
+  // Telegram WebApp
   const tg = window.Telegram?.WebApp;
   try {
-    tg?.ready();
-    tg?.expand();
-    tg?.setHeaderColor?.('#0c0e11');
-    tg?.setBackgroundColor?.('#0c0e11');
+    tg?.ready(); tg?.expand();
+    tg?.setHeaderColor?.('#0c0e11'); tg?.setBackgroundColor?.('#0c0e11');
     tg?.onEvent?.('themeChanged', () => {
-      tg?.setHeaderColor?.('#0c0e11');
-      tg?.setBackgroundColor?.('#0c0e11');
+      tg?.setHeaderColor?.('#0c0e11'); tg?.setBackgroundColor?.('#0c0e11');
     });
   } catch {}
 
+  // DOM
   const $grid  = document.getElementById("grid");
   const $tabs  = document.getElementById("tabs");
-
-  // Мобильная кнопка + кастомный список
   const $catBtn       = document.getElementById("catBtn");
   const $catBtnText   = document.getElementById("catBtnText");
   const $catSheet     = document.getElementById("catSheet");
   const $catSheetList = document.getElementById("catSheetList");
 
-  // === Корзина / заказ в памяти ===
-  const order = (window.order = window.order || { items: [], comment: "" });
-  let currentProduct = null;
-
-  // Плейсхолдер 800×1000 под рамку 4:5
-  const PLACEHOLDER =
-    "data:image/svg+xml;utf8," +
-    encodeURIComponent(
-      `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 1000'>
-        <rect width='100%' height='100%' fill='#111'/>
-        <text x='50%' y='50%' dy='.35em' text-anchor='middle'
-              font-family='system-ui,-apple-system,Segoe UI,Roboto'
-              font-size='36' fill='#777'>Фото</text>
-      </svg>`
-    );
-
-  // === 1.5) МОДАЛКА — статическая из index.html ===
-  const $pm       = document.getElementById('productModal');
-  const $pmImg    = document.getElementById('pm_photo');
-  const $pmTitle  = document.getElementById('pm_title');
-  const $pmSku    = document.getElementById('pm_sku');
-  const $pmPrice  = document.getElementById('pm_price');
-  const $pmDesc   = document.getElementById('pm_desc');
-
-  // Новые элементы
+  const $pm        = document.getElementById('productModal');
+  const $pmPanel   = document.getElementById('pm_panel');
+  const $pmImg     = document.getElementById('pm_photo');
+  const $pmTitle   = document.getElementById('pm_title');
+  const $pmSku     = document.getElementById('pm_sku');
+  const $pmPrice   = document.getElementById('pm_price');
+  const $pmDesc    = document.getElementById('pm_desc');
   const $pmComment = document.getElementById('pm_comment');
   const $pmAdd     = document.getElementById('pm_add');
   const $pmSubmit  = document.getElementById('pm_submit');
 
-  // === Helpers для deep-link ===
-  function getUrlId() {
-    return new URLSearchParams(location.search).get('id');
-  }
-  function setUrlId(id, push = false) {
-    try {
-      const u = new URL(location.href);
-      u.searchParams.set('id', String(id));
-      if (push) history.pushState({ id: String(id) }, '', u.toString());
-      else history.replaceState({ id: String(id) }, '', u.toString());
-    } catch {}
-  }
-  function clearUrlId(push = false) {
-    try {
-      const u = new URL(location.href);
-      u.searchParams.delete('id');
-      if (push) history.pushState({}, '', u.pathname + u.search + u.hash);
-      else history.replaceState({}, '', u.pathname + u.search + u.hash);
-    } catch {}
-  }
-  function getStartParam() {
-    // deep-link из Telegram: t.me/<bot>?startapp=SKU123
-    return tg?.initDataUnsafe?.start_param || null;
+  const $appHeader = document.getElementById('appHeader');
+  const $appMain   = document.getElementById('appMain');
+
+  // Корзина
+  const order = (window.order = window.order || { items: [], comment: "" });
+  let currentProduct = null;
+
+  // Deep-link helpers
+  function getUrlId()            { return new URLSearchParams(location.search).get('id'); }
+  function getStartParam()       { return tg?.initDataUnsafe?.start_param || null; }
+  function setUrlId(id, push)    { try { const u=new URL(location.href); u.searchParams.set('id', String(id)); (push?history.pushState:history.replaceState).call(history,{id:String(id)},'',u.toString()); } catch{} }
+  function clearUrlId(push)      { try { const u=new URL(location.href); u.searchParams.delete('id'); (push?history.pushState:history.replaceState).call(history,{},'',u.pathname+u.search+u.hash); } catch{} }
+
+  // Placeholder
+  const PLACEHOLDER = "data:image/svg+xml;utf8,"+encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 1000'>
+      <rect width='100%' height='100%' fill='#111'/>
+      <text x='50%' y='50%' dy='.35em' text-anchor='middle'
+            font-family='system-ui,-apple-system,Segoe UI,Roboto'
+            font-size='36' fill='#777'>Фото</text>
+    </svg>`);
+
+  // ====== A11y: focus trap utilities ======
+  const FOCUSABLE_SEL = [
+    'a[href]', 'button:not([disabled])', 'textarea:not([disabled])',
+    'input:not([disabled]):not([type="hidden"])', 'select:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+  ].join(',');
+
+  let lastActiveBeforeModal = null;
+  let trapKeydownHandler = null;
+
+  function setInertOnBackground(on) {
+    // делаем фон недоступным
+    [$appHeader, $appMain].forEach(el => {
+      if (!el) return;
+      if (on) {
+        el.setAttribute('aria-hidden', 'true');
+        el.setAttribute('inert', '');
+      } else {
+        el.removeAttribute('aria-hidden');
+        el.removeAttribute('inert');
+      }
+    });
   }
 
+  function trapFocusIn(modalEl) {
+    const focusables = Array.from(modalEl.querySelectorAll(FOCUSABLE_SEL))
+      .filter(el => el.offsetParent !== null || modalEl.contains(el)); // видимые
+
+    if (focusables.length) {
+      focusables[0].focus();
+    } else {
+      // если нет фокусируемых — фокус на панель
+      modalEl.focus();
+    }
+
+    trapKeydownHandler = (e) => {
+      if (e.key !== 'Tab') return;
+      const els = Array.from(modalEl.querySelectorAll(FOCUSABLE_SEL))
+        .filter(el => el.offsetParent !== null || modalEl.contains(el));
+      if (!els.length) { e.preventDefault(); return; }
+      const first = els[0], last = els[els.length - 1];
+      const active = document.activeElement;
+
+      if (e.shiftKey) {
+        if (active === first || !modalEl.contains(active)) {
+          last.focus(); e.preventDefault();
+        }
+      } else {
+        if (active === last) {
+          first.focus(); e.preventDefault();
+        }
+      }
+    };
+    document.addEventListener('keydown', trapKeydownHandler, true);
+  }
+
+  function releaseFocusTrap() {
+    if (trapKeydownHandler) {
+      document.removeEventListener('keydown', trapKeydownHandler, true);
+      trapKeydownHandler = null;
+    }
+  }
+
+  // ===== Modal open/close =====
   function openModal(product, { setUrl = true } = {}) {
     if (!$pm) return;
+
+    lastActiveBeforeModal = document.activeElement || null;
 
     currentProduct = product || null;
 
     const photo = (product.photo || '').trim() || PLACEHOLDER;
-    if ($pmImg) {
-      $pmImg.src = photo;
-      $pmImg.alt = product.title || 'Фото';
-    }
+    if ($pmImg)   { $pmImg.src = photo; $pmImg.alt = product.title || 'Фото'; }
     if ($pmTitle) $pmTitle.textContent = product.title || '';
     if ($pmSku)   $pmSku.textContent   = product.id ? String(product.id) : '';
     if ($pmPrice) $pmPrice.textContent = fmtPrice(product.price);
     if ($pmDesc)  $pmDesc.textContent  = product.desc ? String(product.desc) : '';
 
-    // Комментарий общий на весь заказ
     if ($pmComment) $pmComment.value = order.comment || '';
 
-    // Состояние кнопки "Добавить"
     const already = order.items.find(x => String(x.id) === String(product.id));
-    if ($pmAdd){
-      $pmAdd.textContent = already ? 'В корзине' : 'Добавить';
-      $pmAdd.disabled = !!already;
-    }
+    if ($pmAdd){ $pmAdd.textContent = already ? 'В корзине' : 'Добавить'; $pmAdd.disabled = !!already; }
 
+    // показать
     $pm.classList.add('open');
+    $pm.removeAttribute('aria-hidden');
     document.body.style.overflow = 'hidden';
+    setInertOnBackground(true);
 
-    // обновим URL
+    // a11y: поставить фокус внутрь и ловить Tab
+    ($pmPanel || $pm).setAttribute('tabindex', '-1');
+    trapFocusIn($pmPanel || $pm);
+
     if (setUrl && product?.id != null) setUrlId(product.id);
 
     try { tg?.HapticFeedback?.selectionChanged(); } catch {}
@@ -114,12 +152,26 @@
 
   function closeModal({ clearUrl = true } = {}) {
     if (!$pm) return;
+
+    releaseFocusTrap();
+    setInertOnBackground(false);
+
     $pm.classList.remove('open');
+    $pm.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+
     if (clearUrl) clearUrlId();
+
+    // вернуть фокус на кнопку-источник, если жива; иначе — на категорию
+    if (lastActiveBeforeModal && document.contains(lastActiveBeforeModal)) {
+      lastActiveBeforeModal.focus();
+    } else if ($catBtn) {
+      $catBtn.focus();
+    }
+    lastActiveBeforeModal = null;
   }
 
-  // Закрытия (крестик/кнопка/фон/Escape)
+  // Крестик/фон/Escape
   if ($pm) {
     document.querySelectorAll('[data-close="pm"]').forEach(el => {
       el.addEventListener('click', () => closeModal({ clearUrl: true }));
@@ -132,35 +184,23 @@
     });
   }
 
-  // Обработчики заказа
-  $pmComment?.addEventListener('input', (e)=>{
-    order.comment = String(e.target.value || '').slice(0, 800);
-  });
-
+  // Комментарий / корзина
+  $pmComment?.addEventListener('input', (e)=> { order.comment = String(e.target.value || '').slice(0, 800); });
   $pmAdd?.addEventListener('click', ()=>{
     if (!currentProduct) return;
     const exists = order.items.find(x => String(x.id) === String(currentProduct.id));
     if (!exists){
-      order.items.push({
-        id: currentProduct.id,
-        title: currentProduct.title,
-        price: Number(currentProduct.price || 0),
-        qty: 1
-      });
-      $pmAdd.textContent = 'В корзине';
-      $pmAdd.disabled = true;
+      order.items.push({ id: currentProduct.id, title: currentProduct.title, price: Number(currentProduct.price || 0), qty: 1 });
+      $pmAdd.textContent = 'В корзине'; $pmAdd.disabled = true;
       try { tg?.HapticFeedback?.impactOccurred('light'); } catch {}
     }
   });
-
   $pmSubmit?.addEventListener('click', ()=>{
     if (!order.items.length){
-      $pmSubmit.classList.add('shake');
-      setTimeout(()=> $pmSubmit.classList.remove('shake'), 350);
+      $pmSubmit.classList.add('shake'); setTimeout(()=> $pmSubmit.classList.remove('shake'), 350);
       return;
     }
     const total = order.items.reduce((s, it)=> s + (Number(it.price||0) * Number(it.qty||1)), 0);
-
     const payload = {
       items: order.items.map(({id,title,price,qty})=>({id,title,price,qty})),
       comment: order.comment || '',
@@ -172,35 +212,22 @@
         name: [tg.initDataUnsafe.user.first_name, tg.initDataUnsafe.user.last_name].filter(Boolean).join(' ')
       } : {}
     };
-
     try {
-      if (tg?.sendData){
-        tg.sendData(JSON.stringify(payload));
-        try { tg?.HapticFeedback?.notificationOccurred('success'); } catch {}
-        setTimeout(()=> tg.close?.(), 50);
-      } else {
-        alert('Отправка заказа доступна внутри Telegram.\n\n' + JSON.stringify(payload, null, 2));
-      }
-    } catch {
-      alert('Не удалось отправить заказ. Попробуйте ещё раз.');
-    }
+      if (tg?.sendData){ tg.sendData(JSON.stringify(payload)); try { tg?.HapticFeedback?.notificationOccurred('success'); } catch {} setTimeout(()=> tg.close?.(), 50); }
+      else { alert('Отправка заказа доступна внутри Telegram.\n\n' + JSON.stringify(payload, null, 2)); }
+    } catch { alert('Не удалось отправить заказ. Попробуйте ещё раз.'); }
   });
 
-  // === 1.6) Делегирование кликов по кнопке "Открыть" в карточках ===
+  // Делегирование кликов по карточкам — открытие модалки
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.card .btn');
     if (!btn) return;
-
     e.preventDefault();
     const card = btn.closest('.card');
     const id = card?.dataset?.id;
 
-    const list = (window.state?.filtered && window.state.filtered.length)
-      ? window.state.filtered
-      : (window.state?.products || []);
-
+    const list = (window.state?.filtered && window.state.filtered.length) ? window.state.filtered : (window.state?.products || []);
     let product = id ? list.find(p => String(p.id) === String(id)) : null;
-
     if (!product) {
       const title = card.querySelector('.title')?.textContent?.trim();
       product = list.find(p => p.title === title) || null;
@@ -208,21 +235,19 @@
     if (product) openModal(product, { setUrl: true });
   });
 
-  // === 2) Универсальная загрузка: Railway → fallback JSON
+  // Загрузка данных
   async function getJSON(localPath, apiPath) {
     try {
       const r = await fetch(`${API_BASE}${apiPath}?v=${Date.now()}`, { cache: "no-store" });
-      if (!r.ok) throw new Error(`API ${r.status}`);
-      return await r.json();
+      if (!r.ok) throw new Error(`API ${r.status}`); return await r.json();
     } catch {
       const r = await fetch(`${localPath}?v=${Date.now()}`, { cache: "no-store" });
-      if (!r.ok) throw new Error(`LOCAL ${r.status}`);
-      return await r.json();
+      if (!r.ok) throw new Error(`LOCAL ${r.status}`); return await r.json();
     }
   }
   const toItems = (data) => (Array.isArray(data?.items) ? data.items : []);
 
-  // === 3) Стартовая загрузка
+  // Старт
   Promise.all([
     getJSON("./data/products.json",   "/catalog/products"),
     getJSON("./data/categories.json", "/catalog/categories")
@@ -237,14 +262,12 @@
     renderMobilePicker(categories, activeCat, onChangeCat);
     renderList(products, activeCat);
 
-    // deep-link: Telegram start_param → ?id=
     const deepId = getStartParam() || getUrlId();
     if (deepId) {
       const prod = products.find(p => String(p.id) === String(deepId));
       if (prod) openModal(prod, { setUrl: true });
     }
 
-    // реагируем на back/forward
     window.addEventListener('popstate', () => {
       const id = getUrlId();
       const isOpen = $pm?.classList.contains('open');
@@ -267,21 +290,20 @@
     $grid.innerHTML = `<div class="empty">Не удалось загрузить каталог. Попробуйте обновить страницу.</div>`;
   });
 
-  // === 4) Рендер вкладок (чипы для планшет/десктоп)
+  // Рендер вкладок
   function renderTabs(categories, activeCat, onClick) {
     $tabs.innerHTML = "";
-
     const seen = new Set(["Все"]);
     const tabs = [{ title: "Все" }, ...categories.filter(c => {
-      const t = (c.title || "").trim();
-      if (!t || seen.has(t)) return false;
-      seen.add(t);
-      return true;
+      const t = (c.title || "").trim(); if (!t || seen.has(t)) return false; seen.add(t); return true;
     })];
 
     tabs.forEach((c) => {
       const b = document.createElement("button");
       b.className = "tab" + (c.title === activeCat ? " active" : "");
+      b.type = "button";
+      b.setAttribute('role','tab');
+      b.setAttribute('aria-selected', c.title === activeCat ? 'true' : 'false');
       b.textContent = c.title;
       b.onclick = () => onClick(c.title);
       $tabs.appendChild(b);
@@ -291,16 +313,13 @@
     activeEl?.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
   }
 
-  // === 4.1) Мобильный пикер: кнопка + bottom-sheet
+  // Мобильный пикер
   function renderMobilePicker(categories, activeCat, onPick) {
     if (!$catBtn || !$catBtnText || !$catSheet || !$catSheetList) return;
 
     const seen = new Set(["Все"]);
     const list = [{ title: "Все" }, ...categories.filter(c => {
-      const t = (c.title || "").trim();
-      if (!t || seen.has(t)) return false;
-      seen.add(t);
-      return true;
+      const t = (c.title || "").trim(); if (!t || seen.has(t)) return false; seen.add(t); return true;
     })];
 
     $catBtnText.textContent = activeCat;
@@ -310,12 +329,10 @@
       const item = document.createElement('button');
       item.type = "button";
       item.className = 'sheet__item' + (c.title === activeCat ? ' active' : '');
+      item.setAttribute('role','option');
+      item.setAttribute('aria-selected', c.title === activeCat ? 'true' : 'false');
       item.textContent = c.title;
-      item.onclick = () => {
-        closeSheet();
-        onPick(c.title);
-        try { tg?.HapticFeedback?.selectionChanged(); } catch {}
-      };
+      item.onclick = () => { closeSheet(); onPick(c.title); try { tg?.HapticFeedback?.selectionChanged(); } catch {} };
       $catSheetList.appendChild(item);
     });
 
@@ -323,23 +340,17 @@
     const $backdrop = $catSheet.querySelector('.sheet__backdrop');
     $backdrop.onclick = closeSheet;
   }
-
   function openSheet()  { $catSheet.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
   function closeSheet() { $catSheet.classList.add('hidden');   document.body.style.overflow = '';       }
 
-  // === 5) Рендер карточек
+  // Рендер карточек
   function renderList(products, activeCat) {
     $grid.innerHTML = "";
-
-    const list = products.filter(
-      (p) => activeCat === "Все" || p.category === activeCat
-    );
-
+    const list = products.filter((p) => activeCat === "Все" || p.category === activeCat);
     window.state.filtered = list;
 
     if (list.length === 0) {
-      $grid.innerHTML =
-        `<div class="empty">Тут пока пусто. Добавьте товары в <code>data/products.json</code>.</div>`;
+      $grid.innerHTML = `<div class="empty">Тут пока пусто. Добавьте товары в <code>data/products.json</code>.</div>`;
       return;
     }
 
@@ -367,21 +378,13 @@
           <div class="sku">${escapeHTML(it.id || "")}</div>
           <div class="price">${fmtPrice(it.price)} ₽</div>
         </div>
-        <button class="btn">Открыть</button>
+        <button class="btn" type="button" aria-haspopup="dialog" aria-controls="productModal">Открыть</button>
       `;
-
       $grid.appendChild(card);
     });
   }
 
-  // === helpers
-  function fmtPrice(v) {
-    const n = Number(v || 0);
-    return n.toLocaleString("ru-RU");
-  }
-  function escapeHTML(s) {
-    return String(s).replace(/[&<>"']/g, (m) => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-    }[m]));
-  }
+  // helpers
+  function fmtPrice(v) { const n = Number(v || 0); return n.toLocaleString("ru-RU"); }
+  function escapeHTML(s) { return String(s).replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m])); }
 })();
