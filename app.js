@@ -53,7 +53,32 @@
   const $pmAdd     = document.getElementById('pm_add');
   const $pmSubmit  = document.getElementById('pm_submit');
 
-  function openModal(product) {
+  // === Helpers для deep-link ===
+  function getUrlId() {
+    return new URLSearchParams(location.search).get('id');
+  }
+  function setUrlId(id, push = false) {
+    try {
+      const u = new URL(location.href);
+      u.searchParams.set('id', String(id));
+      if (push) history.pushState({ id: String(id) }, '', u.toString());
+      else history.replaceState({ id: String(id) }, '', u.toString());
+    } catch {}
+  }
+  function clearUrlId(push = false) {
+    try {
+      const u = new URL(location.href);
+      u.searchParams.delete('id');
+      if (push) history.pushState({}, '', u.pathname + u.search + u.hash);
+      else history.replaceState({}, '', u.pathname + u.search + u.hash);
+    } catch {}
+  }
+  function getStartParam() {
+    // deep-link из Telegram: t.me/<bot>?startapp=SKU123
+    return tg?.initDataUnsafe?.start_param || null;
+  }
+
+  function openModal(product, { setUrl = true } = {}) {
     if (!$pm) return;
 
     currentProduct = product || null;
@@ -80,25 +105,30 @@
 
     $pm.classList.add('open');
     document.body.style.overflow = 'hidden';
+
+    // обновим URL
+    if (setUrl && product?.id != null) setUrlId(product.id);
+
     try { tg?.HapticFeedback?.selectionChanged(); } catch {}
   }
 
-  function closeModal() {
+  function closeModal({ clearUrl = true } = {}) {
     if (!$pm) return;
     $pm.classList.remove('open');
     document.body.style.overflow = '';
+    if (clearUrl) clearUrlId();
   }
 
   // Закрытия (крестик/кнопка/фон/Escape)
   if ($pm) {
     document.querySelectorAll('[data-close="pm"]').forEach(el => {
-      el.addEventListener('click', closeModal);
+      el.addEventListener('click', () => closeModal({ clearUrl: true }));
     });
     const $backdrop = $pm.querySelector('.modal__backdrop');
-    if ($backdrop) $backdrop.addEventListener('click', closeModal);
+    if ($backdrop) $backdrop.addEventListener('click', () => closeModal({ clearUrl: true }));
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && $pm.classList.contains('open')) closeModal();
+      if (e.key === 'Escape' && $pm.classList.contains('open')) closeModal({ clearUrl: true });
     });
   }
 
@@ -125,7 +155,6 @@
 
   $pmSubmit?.addEventListener('click', ()=>{
     if (!order.items.length){
-      // Подсветим кнопку и не отправляем пустой заказ
       $pmSubmit.classList.add('shake');
       setTimeout(()=> $pmSubmit.classList.remove('shake'), 350);
       return;
@@ -148,10 +177,8 @@
       if (tg?.sendData){
         tg.sendData(JSON.stringify(payload));
         try { tg?.HapticFeedback?.notificationOccurred('success'); } catch {}
-        // Можно сразу закрыть WebApp — покупатель вернётся в чат
         setTimeout(()=> tg.close?.(), 50);
       } else {
-        // Фолбэк вне Telegram — просто покажем JSON
         alert('Отправка заказа доступна внутри Telegram.\n\n' + JSON.stringify(payload, null, 2));
       }
     } catch {
@@ -178,7 +205,7 @@
       const title = card.querySelector('.title')?.textContent?.trim();
       product = list.find(p => p.title === title) || null;
     }
-    if (product) openModal(product);
+    if (product) openModal(product, { setUrl: true });
   });
 
   // === 2) Универсальная загрузка: Railway → fallback JSON
@@ -209,6 +236,25 @@
     renderTabs(categories, activeCat, onChangeCat);
     renderMobilePicker(categories, activeCat, onChangeCat);
     renderList(products, activeCat);
+
+    // deep-link: Telegram start_param → ?id=
+    const deepId = getStartParam() || getUrlId();
+    if (deepId) {
+      const prod = products.find(p => String(p.id) === String(deepId));
+      if (prod) openModal(prod, { setUrl: true });
+    }
+
+    // реагируем на back/forward
+    window.addEventListener('popstate', () => {
+      const id = getUrlId();
+      const isOpen = $pm?.classList.contains('open');
+      if (id) {
+        const p = products.find(pp => String(pp.id) === String(id));
+        if (p) openModal(p, { setUrl: false });
+      } else if (isOpen) {
+        closeModal({ clearUrl: false });
+      }
+    });
 
     function onChangeCat(title) {
       activeCat = title;
