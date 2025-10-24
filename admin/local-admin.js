@@ -1,10 +1,4 @@
-/* ====== Локальная админка (гибрид) ======
- * - Категории/товары редактируются локально
- * - «Внести изменения» шлёт POST /push и опрашивает /status/:id
- * - Загрузка фото: client-side сжатие → WebP + SHA-1 хэш имени (дедуп)
- * - Удаление фото: /media/delete (safe), если картинка больше не используется
- */
-
+/* ====== Локальная админка (гибрид) ====== */
 const CONFIG = {
   username: 'forfriends',
   passHash: 'a841ff9a9a6d1ccc1549f1acded578a2b37cf31813cd0a594ca1f1833b09d09d',
@@ -29,13 +23,13 @@ const CONFIG = {
 /* ============ Утилиты ============ */
 const $  = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
 
 async function sha256(str){
   const enc = new TextEncoder().encode(str);
   const buf = await crypto.subtle.digest('SHA-256', enc);
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
-const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
 function escapeHtml(s){return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#039;' }[m]))}
 function escapeAttr(s){return String(s).replace(/"/g,'&quot;')}
 function fmtPrice(n){const x=Number(n||0);return x.toLocaleString('ru-RU')}
@@ -62,7 +56,7 @@ function isRepoImageUrl(url) {
   }
 }
 
-// Сжатие изображения на клиенте → WebP (без кропа; по желанию можно добавить кроп 4:5)
+// Сжатие изображения → WebP
 async function compressImage(file, { maxSide = 1200, quality = 0.82 } = {}) {
   const url = URL.createObjectURL(file);
   const img = await new Promise((res, rej) => {
@@ -77,10 +71,8 @@ async function compressImage(file, { maxSide = 1200, quality = 0.82 } = {}) {
   if (k > 1) { width = Math.round(width / k); height = Math.round(height / k); }
 
   const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, width, height);
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
 
   const blob = await new Promise((resolve) =>
     canvas.toBlob(resolve, 'image/webp', quality)
@@ -90,19 +82,16 @@ async function compressImage(file, { maxSide = 1200, quality = 0.82 } = {}) {
   return new File([blob], `${nameBase}.webp`, { type: 'image/webp' });
 }
 
-// SHA-1 хэш для Blob/File (для имени файла)
 async function sha1OfBlob(blob) {
   const buf = await blob.arrayBuffer();
   const hash = await crypto.subtle.digest('SHA-1', buf);
   return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-// Отправка файла на сервер: кладём как <sha1>.webp (сервер дедуплит)
 async function uploadImageFile(webpFile) {
   const base = CONFIG.sync.baseUrl.replace(/\/+$/, '');
   const key  = (CONFIG.sync.apiKey || '').trim();
 
-  // считаем хэш уже сжатого файла
   const h = await sha1OfBlob(webpFile);
   const named = new File([webpFile], `${h}.webp`, { type: 'image/webp' });
 
@@ -121,7 +110,6 @@ async function uploadImageFile(webpFile) {
   return data.url;
 }
 
-// Безопасное удаление файла (если больше не используется)
 async function deleteImageIfUnused(url) {
   const stillUsed = state.prods.some(p => (p.photo||'').trim() === (url||'').trim());
   if (stillUsed) return;
@@ -161,6 +149,58 @@ async function verifyLogin(login, pass){
 
 /* ============ Состояние ============ */
 const state = { cats: [], prods: [], editId: null };
+
+/* ============ Клиентская предвалидация/нормализация ============ */
+function normStr(s){ return String(s||'').replace(/\s+/g,' ').trim(); }
+function isHttpsUrl(u){
+  try { const x = new URL(u); return x.protocol === 'https:'; } catch { return false; }
+}
+function isImagePath(u){ return isRepoImageUrl(u) || isHttpsUrl(u); }
+
+function validateAndCleanCategories(rawCats){
+  const seen = new Set();
+  const out = [];
+  const errors = [];
+  for (const c of rawCats||[]){
+    const title = normStr(c?.title||'');
+    if (!title || title.length>60){ errors.push(`Категория отброшена: "${c?.title||''}"`); continue; }
+    const key = title.toLowerCase();
+    if (seen.has(key)){ errors.push(`Дубликат категории: "${title}"`); continue; }
+    seen.add(key);
+    out.push({ title });
+  }
+  return { items: out, errors };
+}
+
+function validateAndCleanProducts(rawProds, catsSet){
+  const seen = new Set();
+  const out = [];
+  const errors = [];
+  for (const p of rawProds||[]){
+    const id = normStr(p?.id||'');
+    const title = normStr(p?.title||'');
+    const category = normStr(p?.category||'');
+    const desc = normStr(p?.desc||'');
+    const priceNum = Number(p?.price ?? 0);
+
+    if (!id){ errors.push(`Товар без id отброшен: "${title||'[нет названия]'}"`); continue; }
+    if (!title){ errors.push(`Товар без названия отброшен: id=${id}`); continue; }
+    if (Number.isNaN(priceNum) || priceNum<0){ errors.push(`Цена некорректна: id=${id}`); continue; }
+    if (category && !catsSet.has(category.toLowerCase())){ errors.push(`Категория не найдена (${category}) у id=${id}`); continue; }
+
+    let photo = normStr(p?.photo||'');
+    let link  = normStr(p?.link||'');
+    if (photo && !isImagePath(photo)){ errors.push(`Фото не URL/images: id=${id}`); photo=''; }
+    if (link && !isHttpsUrl(link)){ errors.push(`Ссылка не https URL: id=${id}`); link=''; }
+
+    const key = id.toLowerCase();
+    if (seen.has(key)){ errors.push(`Дубликат id: ${id}`); continue; }
+    seen.add(key);
+
+    out.push({ id, title, price: priceNum, category, photo, link, desc });
+  }
+  return { items: out, errors };
+}
 
 /* ============ Рендер ============ */
 async function loadAll(){
@@ -269,15 +309,31 @@ function validateProd(p){
   return null;
 }
 
-/* ============ Синк ============ */
+/* ============ Синк (с предвалидацией) ============ */
 async function pushChanges(){
   const base = CONFIG.sync.baseUrl.replace(/\/+$/,'');
   const key  = (CONFIG.sync.apiKey || '').trim();
   if (!base || !key){ logLine('⚠ Синк не настроен (baseUrl/apiKey)'); return; }
 
+  // 1) Клиентская нормализация/валидация
+  const { items: cleanCats, errors: catErrs } = validateAndCleanCategories(state.cats);
+  const catsSet = new Set(cleanCats.map(c => c.title.toLowerCase()));
+  const { items: cleanProds, errors: prodErrs } = validateAndCleanProducts(state.prods, catsSet);
+
+  const allErrs = [...catErrs, ...prodErrs];
+  if (!cleanCats.length) allErrs.push('Нет валидных категорий после очистки.');
+  if (!cleanProds.length) allErrs.push('Нет валидных товаров после очистки.');
+
+  if (allErrs.length){
+    alert('Исправьте ошибки перед синком:\n\n' + allErrs.slice(0,15).join('\n') + (allErrs.length>15?`\n…и ещё ${allErrs.length-15}`:''));
+    logLine('sync: ОТМЕНА — ошибки в данных (см. alert).');
+    return;
+  }
+
+  // 2) Отправка на сервер
   const payload = {
-    categories: { items: state.cats },
-    products:   { items: state.prods },
+    categories: { items: cleanCats },
+    products:   { items: cleanProds },
     meta: { ts: Date.now(), reason: 'manual' }
   };
 
@@ -299,11 +355,23 @@ async function pushChanges(){
       const txt = await res.text().catch(()=> '');
       throw new Error(`push HTTP ${res.status} ${txt}`);
     }
-    const { ok, jobId } = await res.json();
-    if (!ok || !jobId) throw new Error('Сервер не вернул jobId.');
+    const data = await res.json();
+    if (!data?.ok || !data?.jobId) throw new Error('Сервер не вернул jobId.');
 
-    logLine(`sync: QUEUED job ${jobId}`);
-    await pollStatus(base, key, jobId);
+    // Показать отчёт сервера (что он ещё подчистил)
+    if (data.report){
+      const { cats, prods } = data.report;
+      const lines = [];
+      if (cats?.dropped)   lines.push(`Категории отброшены: ${cats.dropped}`);
+      if (cats?.deduped)   lines.push(`Категории дубликаты: ${cats.deduped}`);
+      if (prods?.dropped)  lines.push(`Товары отброшены: ${prods.dropped}`);
+      if (prods?.deduped)  lines.push(`Товары дубликаты: ${prods.deduped}`);
+      if (prods?.badRefs)  lines.push(`Товары с несуществ. категорией: ${prods.badRefs}`);
+      if (lines.length) logLine('server report:\n' + lines.join('\n'));
+    }
+
+    logLine(`sync: QUEUED job ${data.jobId}`);
+    await pollStatus(base, key, data.jobId);
   }catch(e){
     logLine('sync: ERROR ' + (e.message||e));
   }finally{
@@ -341,6 +409,40 @@ function switchTab(name){
   $('#tab-cats' ).classList.toggle('hide', name!=='cats');
   $('#tab-goods').classList.toggle('hide', name!=='goods');
   $('#tab-sync' ).classList.toggle('hide', name!=='sync');
+}
+
+function fillProdForm(p){
+  $('#p_id').value    = p.id||'';
+  $('#p_title').value = p.title||'';
+  $('#p_price').value = p.price||'';
+  $('#p_cat').value   = p.category||'';
+  $('#p_photo').value = p.photo||'';
+  $('#p_link').value  = p.link||'';
+  $('#p_desc').value  = p.desc||'';
+}
+function clearProdForm(){
+  state.editId = null;
+  $('#p_id').value = $('#p_title').value = $('#p_price').value =
+  $('#p_photo').value = $('#p_link').value = $('#p_desc').value = '';
+  const sel = $('#p_cat'); if (sel.options.length) sel.selectedIndex = 0;
+}
+function collectProdFromForm(){
+  return {
+    id: $('#p_id').value.trim(),
+    title: $('#p_title').value.trim(),
+    price: Number($('#p_price').value||0),
+    category: $('#p_cat').value.trim(),
+    photo: $('#p_photo').value.trim(),
+    link: $('#p_link').value.trim(),
+    desc: $('#p_desc').value.trim(),
+  };
+}
+function validateProd(p){
+  if (!p.id) return 'Укажите ID';
+  if (!p.title) return 'Укажите название';
+  if (!p.category) return 'Выберите категорию';
+  if (Number.isNaN(p.price) || p.price < 0) return 'Цена некорректна';
+  return null;
 }
 
 async function boot(){
@@ -385,7 +487,7 @@ async function boot(){
   };
   $('#resetProdBtn').onclick = clearProdForm;
 
-  // Загрузка фото: сжатие → sha1 имя → upload
+  // upload
   $('#btn-upload').onclick = async () => {
     const inp = $('#p_file');
     const orig = inp?.files?.[0];
