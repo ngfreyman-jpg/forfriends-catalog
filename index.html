@@ -12,22 +12,14 @@
 
   <style>
     :root{
-      --bg:#0c0e11;
-      --card:#12161d;
-      --muted:#9aa3b2;
-      --fg:#f2f5f7;
-      --line:#232a36;
-      --acid:#D7FF3F;
-      --acid-2:#B7FF2E;
-      --danger:#ff6b6b;
+      --bg:#0c0e11; --card:#12161d; --muted:#9aa3b2; --fg:#f2f5f7;
+      --line:#232a36; --acid:#D7FF3F; --acid-2:#B7FF2E; --danger:#ff6b6b;
       --shadow:0 10px 30px rgba(0,0,0,.35);
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{
-      margin:0;background:var(--bg);color:var(--fg);
-      font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-    }
+    body{ margin:0; background:var(--bg); color:var(--fg);
+      font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
 
     /* ===== Header: только логотип ===== */
     .ff-header{
@@ -39,13 +31,13 @@
       max-width:1100px; margin:0 auto; padding:14px 18px;
       display:flex; align-items:center; justify-content:flex-start;
     }
+    /* Увеличила логотип */
     .ff-logo{
-      height:40px; width:auto; object-fit:contain;
+      height:64px; width:auto; object-fit:contain;
       filter:drop-shadow(0 0 10px rgba(215,255,63,.18));
     }
-    @media (min-width:700px){ .ff-logo{height:52px} .ff-header__inner{padding:16px 18px} }
-    @media (min-width:1100px){ .ff-logo{height:64px} .ff-header__inner{padding:18px 20px} }
-    /* на всякий случай скрываем старые классы, если где-то остались */
+    @media (min-width:700px){ .ff-logo{height:80px} .ff-header__inner{padding:16px 18px} }
+    @media (min-width:1100px){ .ff-logo{height:96px} .ff-header__inner{padding:18px 20px} }
     .ff-brand, .ff-brand__title, .ff-brand__tag{ display:none !important; }
 
     /* Контейнер */
@@ -117,51 +109,34 @@
       position:relative;width:100%;
       padding-top:125%; /* 4:5 */
       background:#0f131a;
-      border-bottom:1px solid #1b2231;
-      overflow:hidden;
+      border-bottom:1px solid #1b2231; overflow:hidden;
     }
     .card .media > img.photo{
-      position:absolute; inset:0;
-      width:100%; height:100%;
+      position:absolute; inset:0; width:100%; height:100%;
       object-fit:cover; display:block;
     }
 
-    /* Инфо-блок тянем, чтобы утопить кнопку вниз */
+    /* Инфо-блок */
     .card .info{
-      padding:14px 14px 10px;
-      display:flex; flex-direction:column; gap:8px;
-      flex:1 1 auto;
+      padding:14px 14px 10px; display:flex; flex-direction:column; gap:8px; flex:1 1 auto;
     }
-
-    /* Заголовок — 2 строки + центр */
     .card .title{
       font-weight:600; line-height:1.2;
       display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
-      overflow:hidden; min-height: calc(1.2em * 2);
-      text-align:center;
+      overflow:hidden; min-height: calc(1.2em * 2); text-align:center;
     }
-
-    /* SKU — 1 строка + центр */
     .card .sku{
       color:var(--muted); font-size:12px; line-height:1.2;
-      min-height:1.2em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-      text-align:center;
+      min-height:1.2em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;
     }
-
-    /* Цена — full-width + центр */
     .card .price{
-      display:flex; align-items:center; justify-content:center;
-      gap:6px; font-weight:700; color:#0b0f14;
-      padding:10px 12px; border-radius:12px;
-      background:linear-gradient(90deg,var(--acid),var(--acid-2));
+      display:flex; align-items:center; justify-content:center; gap:6px; font-weight:700; color:#0b0f14;
+      padding:10px 12px; border-radius:12px; background:linear-gradient(90deg,var(--acid),var(--acid-2));
       width:100%; text-align:center;
     }
-
-    /* Кнопка */
     .btn{
       background:#1b2331;color:#cfe1ff;border:1px solid #2a354a;border-radius:12px;
-      padding:10px 12px;margin:12px;cursor:pointer;transition:.15s;font-weight:600;
-      margin-top:auto; /* прибиваем к низу */
+      padding:10px 12px;margin:12px;cursor:pointer;transition:.15s;font-weight:600; margin-top:auto;
     }
     .btn:hover{border-color:#3a4a66;transform:translateY(-1px)}
     .btn:active{transform:translateY(0);box-shadow:inset 0 0 0 999px rgba(255,255,255,.04)}
@@ -172,7 +147,6 @@
     }
   </style>
 
-  <!-- Telegram WebApp SDK (не мешает вне Telegram) -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -181,10 +155,10 @@
   <header class="ff-header">
     <div class="ff-header__inner">
       <img
-        src="./images/brand/forfriends-logo.png"
+        src="./images/brand/forfriends-wordmark.png"
         alt="Для своих"
         class="ff-logo"
-        width="200" height="56"
+        width="400" height="120"
         decoding="async"
       />
     </div>
