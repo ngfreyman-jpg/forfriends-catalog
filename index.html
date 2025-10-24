@@ -110,9 +110,16 @@
     }
     /* ================================================ */
 
-    .card .info{padding:14px 14px 10px}
-    .card .title{font-weight:600;margin-bottom:6px}
-    .card .sku{color:var(--muted);font-size:12px;margin-bottom:8px}
+    /* Патч: выравниваем кнопку по низу карточки */
+    .card .info{
+      padding:14px 14px 10px;
+      display:flex;             /* NEW */
+      flex-direction:column;    /* NEW */
+      gap:6px;                  /* NEW */
+      flex:1 1 auto;            /* NEW — растягиваем инфоблок */
+    }
+    .card .title{font-weight:600}
+    .card .sku{color:var(--muted);font-size:12px}
     .card .price{
       display:inline-flex;align-items:center;gap:6px;font-weight:700;
       color:#0b0f14;padding:6px 10px;border-radius:10px;
@@ -121,6 +128,7 @@
     .btn{
       background:#1b2331;color:#cfe1ff;border:1px solid #2a354a;border-radius:12px;
       padding:10px 12px;margin:12px;cursor:pointer;transition:.15s;font-weight:600;
+      margin-top:auto;          /* NEW — прибиваем к низу */
     }
     .btn:hover{border-color:#3a4a66;transform:translateY(-1px)}
     .btn:active{transform:translateY(0);box-shadow:inset 0 0 0 999px rgba(255,255,255,.04)}
