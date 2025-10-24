@@ -256,16 +256,44 @@ function renderCats(){
       <div>${escapeHtml(c.title||'—')}</div>
       <div><button class="btn secondary" data-del>Удалить</button></div>
     `;
+
     row.querySelector('[data-del]').onclick = ()=>{
-      if (confirm(`Удалить категорию «${c.title}»?`)){
-        state.cats.splice(i,1);
-        renderCats(); renderProdFormOptions();
-        markDirty();
+      const catTitle = (c.title || '').trim();
+      if (!catTitle) return;
+
+      // Ищем все товары, привязанные к удаляемой категории
+      const linkedIdx = [];
+      const catKey = catTitle.toLowerCase();
+      state.prods.forEach((p, idx)=>{
+        if ((p.category||'').trim().toLowerCase() === catKey) linkedIdx.push(idx);
+      });
+
+      if (linkedIdx.length > 0){
+        const ok = confirm(
+          `К категории «${catTitle}» привязано товаров: ${linkedIdx.length}.\n\n` +
+          `Удалить категорию и очистить у этих товаров поле категории (перенести в «без категории»)?`
+        );
+        if (!ok) return;
+
+        // Очистим привязку у всех связанных товаров
+        linkedIdx.forEach((idx)=> { state.prods[idx].category = ''; });
+        logLine(`Категория «${catTitle}»: отвязано товаров — ${linkedIdx.length}`);
+      } else {
+        // Обычное подтверждение, если товаров нет
+        const ok = confirm(`Удалить категорию «${catTitle}»?`);
+        if (!ok) return;
       }
+
+      // Удаляем категорию
+      state.cats.splice(i,1);
+      renderCats(); renderProdFormOptions(); renderProds();
+      markDirty();
     };
+
     box.appendChild(row);
   });
 }
+
 function renderProdFormOptions(){
   const sel = $('#p_cat'); sel.innerHTML = '';
   state.cats.forEach(c=>{
