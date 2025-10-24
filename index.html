@@ -21,7 +21,7 @@
     body{ margin:0; background:var(--bg); color:var(--fg);
       font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
 
-    /* ===== Header: только логотип ===== */
+    /* ===== Header: логотип центр ===== */
     .ff-header{
       position:sticky; top:0; z-index:50; backdrop-filter:blur(8px);
       background:linear-gradient(180deg,rgba(16,18,23,.75),rgba(16,18,23,.35));
@@ -29,10 +29,8 @@
     }
     .ff-header__inner{
       max-width:1100px; margin:0 auto; padding:14px 18px;
-      display:flex; align-items:center; justify-content:center; /* центрируем лого */
+      display:flex; align-items:center; justify-content:center;
     }
-
-    /* Обёртка, чтобы положить «свечение» под логотип */
     .ff-logo-wrap{ position:relative; display:inline-flex; }
     .ff-logo-wrap::before{
       content:""; position:absolute; inset:auto; left:50%; bottom:-6px;
@@ -44,8 +42,6 @@
         rgba(215,255,63,0) 75%);
       filter:blur(18px); opacity:.9;
     }
-
-    /* Лого: чуть меньше + мягкие неоновые тени */
     .ff-logo{
       height:56px; width:auto; object-fit:contain;
       filter:
@@ -53,22 +49,13 @@
         drop-shadow(0 0 14px rgba(215,255,63,.16))
         drop-shadow(0 0 28px rgba(215,255,63,.10));
     }
-    @media (min-width:700px){
-      .ff-logo{height:72px}
-      .ff-header__inner{padding:16px 18px}
-      .ff-logo-wrap::before{ bottom:-8px }
-    }
-    @media (min-width:1100px){
-      .ff-logo{height:88px}
-      .ff-header__inner{padding:18px 20px}
-      .ff-logo-wrap::before{ bottom:-10px }
-    }
-    .ff-brand, .ff-brand__title, .ff-brand__tag{ display:none !important; }
+    @media (min-width:700px){ .ff-logo{height:72px} .ff-header__inner{padding:16px 18px} .ff-logo-wrap::before{ bottom:-8px } }
+    @media (min-width:1100px){ .ff-logo{height:88px} .ff-header__inner{padding:18px 20px} .ff-logo-wrap::before{ bottom:-10px } }
 
     /* Контейнер */
     .wrap{max-width:1100px;margin:0 auto;padding:14px 18px}
 
-    /* ===== Мобильный фильтр: кнопка + sheet ===== */
+    /* Моб. фильтр (кнопка) */
     .filters{ display:none; padding:10px 18px 4px; align-items:center; gap:8px; }
     .filters__label{ color:var(--muted); font-size:12px; }
     .filters__button{
@@ -77,27 +64,9 @@
       outline:none; cursor:pointer; transition:.15s border-color, .15s transform;
     }
     .filters__button:active{ transform:scale(.98) }
+    @media (max-width:700px){ .filters{ display:flex } .tabs{ display:none } }
 
-    /* Bottom sheet */
-    .sheet.hidden{ display:none }
-    .sheet{ position:fixed; inset:0; z-index:60; }
-    .sheet__backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.5); }
-    .sheet__panel{
-      position:absolute; left:0; right:0; bottom:0;
-      background:#0f131a; border-top-left-radius:16px; border-top-right-radius:16px;
-      box-shadow:0 -10px 30px rgba(0,0,0,.4); max-height:70vh; display:flex; flex-direction:column;
-    }
-    .sheet__handle{ width:44px; height:5px; border-radius:999px; background:#293141; margin:8px auto; }
-    .sheet__list{ overflow:auto; padding:4px 6px 12px; }
-    .sheet__item{
-      display:flex; align-items:center; gap:10px;
-      padding:14px 12px; border-radius:12px; margin:4px 8px;
-      background:#12161d; border:1px solid #1f2734; color:#d6dbe6; font-weight:600;
-    }
-    .sheet__item.active{ border-color:var(--acid); box-shadow:0 0 0 3px rgba(215,255,63,.12) inset; }
-    .sheet__item:active{ transform:translateY(1px) }
-
-    /* Табы (чипы) — для десктопа */
+    /* Чипы (десктоп) */
     .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px}
     .tab{
       background:#151a22;border:1px solid var(--line);color:#cfd6e4;
@@ -106,10 +75,8 @@
     .tab:hover{border-color:#324059}
     .tab.active{
       color:#0b0f14;background:linear-gradient(90deg,var(--acid),var(--acid-2));
-      border-color:transparent;
-      box-shadow:0 0 0 4px rgba(215,255,63,.12),0 8px 24px rgba(215,255,63,.18);
+      border-color:transparent; box-shadow:0 0 0 4px rgba(215,255,63,.12),0 8px 24px rgba(215,255,63,.18);
     }
-    @media (max-width:700px){ .filters{ display:flex } .tabs{ display:none } }
 
     /* Сетка карточек */
     #grid{display:grid;gap:18px;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -128,31 +95,17 @@
       border-color:#2c3546;
       box-shadow:0 12px 40px rgba(0,0,0,.45),0 0 0 4px rgba(215,255,63,.06) inset;
     }
+    .card .media{ position:relative;width:100%; padding-top:125%; background:#0f131a; border-bottom:1px solid #1b2231; overflow:hidden; }
+    .card .media > img.photo{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
 
-    /* Рамка 4:5 под фото */
-    .card .media{
-      position:relative;width:100%;
-      padding-top:125%; /* 4:5 */
-      background:#0f131a;
-      border-bottom:1px solid #1b2231; overflow:hidden;
-    }
-    .card .media > img.photo{
-      position:absolute; inset:0; width:100%; height:100%;
-      object-fit:cover; display:block;
-    }
-
-    /* Инфо-блок */
-    .card .info{
-      padding:14px 14px 10px; display:flex; flex-direction:column; gap:8px; flex:1 1 auto;
-    }
+    .card .info{ padding:14px 14px 10px; display:flex; flex-direction:column; gap:8px; flex:1 1 auto; }
     .card .title{
-      font-weight:600; line-height:1.2;
-      display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+      font-weight:600; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
       overflow:hidden; min-height: calc(1.2em * 2); text-align:center;
     }
     .card .sku{
-      color:var(--muted); font-size:12px; line-height:1.2;
-      min-height:1.2em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;
+      color:var(--muted); font-size:12px; line-height:1.2; min-height:1.2em;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;
     }
     .card .price{
       display:flex; align-items:center; justify-content:center; gap:6px; font-weight:700; color:#0b0f14;
@@ -166,27 +119,80 @@
     .btn:hover{border-color:#3a4a66;transform:translateY(-1px)}
     .btn:active{transform:translateY(0);box-shadow:inset 0 0 0 999px rgba(255,255,255,.04)}
 
-    .empty{
-      grid-column:1/-1;text-align:center;color:var(--muted);
-      padding:24px;border:1px dashed var(--line);border-radius:14px;background:#0e131d;
+    .empty{ grid-column:1/-1;text-align:center;color:var(--muted); padding:24px;border:1px dashed var(--line);border-radius:14px;background:#0e131d; }
+
+    /* ===== Product Modal ===== */
+    .modal{ position:fixed; inset:0; z-index:70; display:none; }
+    .modal.open{ display:block; }
+    .modal__backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.55);}
+    .modal__panel{
+      position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+      width:min(94vw, 780px); max-height:90vh; overflow:auto;
+      background:#0f131a; border:1px solid #1f2734; border-radius:20px; box-shadow:0 20px 60px rgba(0,0,0,.5);
     }
+    .pm__media{ position:relative; padding-top:66%; background:#0b0f14; overflow:hidden; border-bottom:1px solid #1b2231;}
+    .pm__media img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+    .pm__body{ padding:16px; display:grid; gap:12px; }
+    .pm__title{ font-weight:700; font-size:18px; text-align:center; }
+    .pm__sku{ color:var(--muted); font-size:12px; text-align:center;}
+    .pm__price{ display:flex; justify-content:center; align-items:center; gap:8px;
+      background:linear-gradient(90deg,var(--acid),var(--acid-2)); color:#0b0f14; padding:10px 12px; border-radius:12px; font-weight:700;}
+    .pm__desc{ color:#cfd6e4; font-size:14px; line-height:1.4; white-space:pre-wrap; }
+    .pm__row{ display:flex; gap:10px; justify-content:center; align-items:center; }
+    .qty{ display:inline-flex; align-items:center; border:1px solid #2a354a; border-radius:12px; overflow:hidden; }
+    .qty button{ background:#161c26; color:#dbe6ff; border:none; width:40px; height:40px; font-size:18px; cursor:pointer; }
+    .qty input{ width:56px; height:40px; background:#0f131a; border:none; color:#fff; text-align:center; font-weight:700; }
+    .pm__btn{ background:#1b2331; color:#cfe1ff; border:1px solid #2a354a; border-radius:12px; padding:10px 12px; cursor:pointer; font-weight:700; }
+    .pm__btn--buy{ background:linear-gradient(90deg,var(--acid),var(--acid-2)); color:#0b0f14; border:none; }
+    .pm__close{ position:absolute; top:10px; right:10px; background:#121923; border:1px solid #2a354a; color:#cfd6e4; border-radius:10px; padding:6px 10px; cursor:pointer;}
+
+    /* ===== Cart FAB + Drawer ===== */
+    .cart-fab{
+      position:fixed; right:16px; bottom:16px; z-index:65;
+      background:#121a26; color:#d9e6ff; border:1px solid #2a354a;
+      border-radius:999px; padding:12px 16px; font-weight:700; cursor:pointer;
+      box-shadow:0 12px 30px rgba(0,0,0,.45);
+    }
+    .cart-fab__badge{
+      margin-left:8px; background:linear-gradient(90deg,var(--acid),var(--acid-2)); color:#0b0f14;
+      font-weight:900; border-radius:999px; padding:4px 9px; display:inline-block;
+    }
+
+    .drawer{ position:fixed; inset:0; z-index:75; display:none; }
+    .drawer.open{ display:block; }
+    .drawer__backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.55);}
+    .drawer__panel{
+      position:absolute; right:0; top:0; bottom:0; width:min(96vw,420px);
+      background:#0f131a; border-left:1px solid #1f2734; box-shadow: -16px 0 40px rgba(0,0,0,.45);
+      display:flex; flex-direction:column;
+    }
+    .cart__head{ padding:14px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #1b2231; }
+    .cart__title{ font-weight:800; }
+    .cart__list{ padding:10px 8px; overflow:auto; display:grid; gap:10px; flex:1 1 auto; }
+    .cart__item{ display:grid; grid-template-columns:64px 1fr auto; gap:10px; align-items:center; border:1px solid #1f2734; border-radius:12px; padding:8px; background:#12161d; }
+    .cart__item img{ width:64px; height:64px; object-fit:cover; border-radius:8px; }
+    .cart__title{ font-weight:600; font-size:14px; }
+    .cart__sku{ color:var(--muted); font-size:12px; }
+    .cart__qty{ display:flex; align-items:center; gap:6px; }
+    .cart__qty input{ width:44px; height:32px; background:#0f131a; border:1px solid #2a354a; color:#fff; text-align:center; border-radius:8px; }
+    .cart__price{ font-weight:800; }
+    .cart__rm{ background:#1b2331; color:#ffe1e1; border:1px solid #3a2331; border-radius:10px; padding:6px 10px; cursor:pointer;}
+    .cart__foot{ border-top:1px solid #1b2231; padding:12px; display:grid; gap:10px; }
+    .total{ display:flex; align-items:center; justify-content:space-between; font-weight:800; }
+    .btn-row{ display:flex; gap:8px; }
+    .btn-outline{ background:#121923; color:#cfe1ff; border:1px solid #2a354a; border-radius:12px; padding:10px 12px; cursor:pointer; font-weight:700; flex:1 1 auto; }
+    .btn-primary{ background:linear-gradient(90deg,var(--acid),var(--acid-2)); color:#0b0f14; border:none; border-radius:12px; padding:10px 12px; cursor:pointer; font-weight:900; flex:1 1 auto; }
   </style>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 
-  <!-- Хедер: только логотип -->
+  <!-- Хедер -->
   <header class="ff-header">
     <div class="ff-header__inner">
       <span class="ff-logo-wrap">
-        <img
-          src="./images/brand/forfriends-wordmark.png"
-          alt="Для своих"
-          class="ff-logo"
-          width="360" height="112"
-          decoding="async"
-        />
+        <img src="./images/brand/forfriends-wordmark.png" alt="Для своих" class="ff-logo" width="360" height="112" decoding="async"/>
       </span>
     </div>
   </header>
@@ -195,26 +201,60 @@
     <!-- Мобильный фильтр -->
     <div class="filters">
       <span class="filters__label">Категория</span>
-      <button id="catBtn" class="filters__button">
-        <span id="catBtnText">Все</span>
-      </button>
+      <button id="catBtn" class="filters__button"><span id="catBtnText">Все</span></button>
     </div>
 
-    <!-- Чипы (планшет/десктоп) -->
+    <!-- Чипы -->
     <div id="tabs" class="tabs"></div>
 
     <main id="grid"></main>
   </div>
 
-  <!-- Bottom sheet категорий -->
-  <div id="catSheet" class="sheet hidden">
-    <div class="sheet__backdrop"></div>
-    <div class="sheet__panel">
-      <div class="sheet__handle"></div>
-      <div class="sheet__list" id="catSheetList"></div>
+  <!-- ===== Product Modal ===== -->
+  <div id="productModal" class="modal" aria-hidden="true">
+    <div class="modal__backdrop" data-close="pm"></div>
+    <div class="modal__panel">
+      <button class="pm__close" data-close="pm">Закрыть</button>
+      <div class="pm__media"><img id="pm_photo" alt=""></div>
+      <div class="pm__body">
+        <div class="pm__title" id="pm_title"></div>
+        <div class="pm__sku" id="pm_sku"></div>
+        <div class="pm__price"><span id="pm_price"></span> ₽</div>
+        <div class="pm__desc" id="pm_desc"></div>
+        <div class="pm__row">
+          <div class="qty">
+            <button id="pm_minus">–</button>
+            <input id="pm_qty" type="number" min="1" value="1">
+            <button id="pm_plus">+</button>
+          </div>
+          <button id="pm_add" class="pm__btn pm__btn--buy">В корзину</button>
+          <button id="pm_go" class="pm__btn">Оформить</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script src="./app.js?v=4" defer></script>
+  <!-- ===== Cart FAB + Drawer ===== -->
+  <button id="cartFab" class="cart-fab">Корзина <span id="cartCount" class="cart-fab__badge">0</span></button>
+
+  <div id="cartDrawer" class="drawer" aria-hidden="true">
+    <div class="drawer__backdrop" data-close="cart"></div>
+    <div class="drawer__panel">
+      <div class="cart__head">
+        <div class="cart__title">Корзина</div>
+        <button id="cartClear" class="btn-outline">Очистить</button>
+      </div>
+      <div id="cartList" class="cart__list"></div>
+      <div class="cart__foot">
+        <div class="total"><span>Итого</span><span id="cartTotal">0 ₽</span></div>
+        <div class="btn-row">
+          <button id="cartClose" class="btn-outline">Закрыть</button>
+          <button id="cartCheckout" class="btn-primary">Оформить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js?v=5" defer></script>
 </body>
 </html>
