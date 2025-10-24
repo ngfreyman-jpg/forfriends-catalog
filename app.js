@@ -36,94 +36,54 @@
       </svg>`
     );
 
-  // === 1.5) МОДАЛКА — создаём при первом использовании ===
-  let modalCreated = false;
-  let $modal, $modalCard, $mImg, $mTitle, $mSku, $mPrice, $mDesc, $mLink, $mClose;
-
-  function ensureModal() {
-    if (modalCreated) return;
-
-    const wrap = document.createElement('div');
-    wrap.id = 'modal';
-    wrap.className = 'modal hidden';
-    wrap.innerHTML = `
-      <div class="modal__backdrop"></div>
-      <div class="modal__card" role="dialog" aria-modal="true">
-        <button class="modal__close" aria-label="Закрыть">×</button>
-        <div class="modal__media">
-          <img id="mImg" alt="Фото" width="320" height="400" loading="lazy" decoding="async">
-        </div>
-        <div class="modal__info">
-          <div id="mTitle" class="modal__title"></div>
-          <div id="mSku"   class="modal__sku"></div>
-          <div id="mPrice" class="modal__price"></div>
-          <div id="mDesc"  class="modal__desc"></div>
-        </div>
-        <div class="modal__actions">
-          <button id="mLink"   class="btn btn--primary">Перейти по ссылке</button>
-          <button id="mClose2" class="btn">Закрыть</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(wrap);
-
-    // кэширую элементы
-    $modal     = wrap;
-    $modalCard = wrap.querySelector('.modal__card');
-    $mImg      = wrap.querySelector('#mImg');
-    $mTitle    = wrap.querySelector('#mTitle');
-    $mSku      = wrap.querySelector('#mSku');
-    $mPrice    = wrap.querySelector('#mPrice');
-    $mDesc     = wrap.querySelector('#mDesc');
-    $mLink     = wrap.querySelector('#mLink');
-    $mClose    = wrap.querySelector('.modal__close');
-
-    // закрытия
-    wrap.querySelector('.modal__backdrop').onclick = closeModal;
-    $mClose.onclick = closeModal;
-    wrap.querySelector('#mClose2').onclick = closeModal;
-    document.addEventListener('keydown', (e) => {
-      if (!$modal || $modal.classList.contains('hidden')) return;
-      if (e.key === 'Escape') closeModal();
-    });
-
-    modalCreated = true;
-  }
+  // === 1.5) МОДАЛКА — используем статическую из index.html ===
+  // Разметка в index.html: #productModal, #pm_photo, #pm_title, #pm_sku, #pm_price, #pm_desc
+  // Кнопки закрытия: [data-close="pm"] и клик по .modal__backdrop
+  const $pm       = document.getElementById('productModal');
+  const $pmImg    = document.getElementById('pm_photo');
+  const $pmTitle  = document.getElementById('pm_title');
+  const $pmSku    = document.getElementById('pm_sku');
+  const $pmPrice  = document.getElementById('pm_price');
+  const $pmDesc   = document.getElementById('pm_desc');
 
   function openModal(product) {
-    ensureModal();
+    if (!$pm) return;
 
-    const photo = product.photo?.trim() || PLACEHOLDER;
-    $mImg.src = photo;
-    $mImg.alt = product.title || 'Фото';
-
-    $mTitle.textContent = product.title || '';
-    $mSku.textContent   = product.id ? String(product.id) : '';
-    $mPrice.textContent = `${fmtPrice(product.price)} ₽`;
-    $mDesc.textContent  = product.desc ? String(product.desc) : '';
-
-    const link = product.link?.trim();
-    if (link) {
-      $mLink.style.display = '';
-      $mLink.onclick = () => {
-        window.open(link, '_blank');
-        try { tg?.HapticFeedback?.impactOccurred('light'); } catch {}
-      };
-    } else {
-      $mLink.style.display = 'none';
-      $mLink.onclick = null;
+    const photo = (product.photo || '').trim() || PLACEHOLDER;
+    if ($pmImg) {
+      $pmImg.src = photo;
+      $pmImg.alt = product.title || 'Фото';
     }
+    if ($pmTitle) $pmTitle.textContent = product.title || '';
+    if ($pmSku)   $pmSku.textContent   = product.id ? String(product.id) : '';
+    if ($pmPrice) $pmPrice.textContent = `${fmtPrice(product.price)} ₽`;
+    if ($pmDesc)  $pmDesc.textContent  = product.desc ? String(product.desc) : '';
 
-    $modal.classList.remove('hidden');
+    $pm.classList.add('open');
     document.body.style.overflow = 'hidden';
     try { tg?.HapticFeedback?.selectionChanged(); } catch {}
   }
 
   function closeModal() {
-    if ($modal) {
-      $modal.classList.add('hidden');
-      document.body.style.overflow = '';
-    }
+    if (!$pm) return;
+    $pm.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  // Закрытия (крестик/кнопка/фон/Escape)
+  if ($pm) {
+    // Все элементы с data-close="pm"
+    document.querySelectorAll('[data-close="pm"]').forEach(el => {
+      el.addEventListener('click', closeModal);
+    });
+    // Клик по подложке
+    const $backdrop = $pm.querySelector('.modal__backdrop');
+    if ($backdrop) $backdrop.addEventListener('click', closeModal);
+
+    // Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && $pm.classList.contains('open')) closeModal();
+    });
   }
 
   // === 1.6) Делегирование кликов по кнопке "Открыть" в карточках ===
@@ -296,9 +256,6 @@
         </div>
         <button class="btn">Открыть</button>
       `;
-
-      // Локальный обработчик уже не обязателен, но не мешает:
-      // card.querySelector(".btn").onclick = () => openModal(it);
 
       $grid.appendChild(card);
     });
