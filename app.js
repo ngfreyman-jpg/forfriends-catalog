@@ -18,7 +18,7 @@
   const $grid  = document.getElementById("grid");
   const $tabs  = document.getElementById("tabs");
 
-  // NEW: мобильная кнопка + кастомный список
+  // Мобильная кнопка + кастомный список
   const $catBtn       = document.getElementById("catBtn");
   const $catBtnText   = document.getElementById("catBtnText");
   const $catSheet     = document.getElementById("catSheet");
@@ -35,6 +35,96 @@
               font-size='36' fill='#777'>Фото</text>
       </svg>`
     );
+
+  // === 1.5) МОДАЛКА — создаём при первом использовании ===
+  let modalCreated = false;
+  let $modal, $modalCard, $mImg, $mTitle, $mSku, $mPrice, $mDesc, $mLink, $mClose;
+
+  function ensureModal() {
+    if (modalCreated) return;
+
+    const wrap = document.createElement('div');
+    wrap.id = 'modal';
+    wrap.className = 'modal hidden';
+    wrap.innerHTML = `
+      <div class="modal__backdrop"></div>
+      <div class="modal__card" role="dialog" aria-modal="true">
+        <button class="modal__close" aria-label="Закрыть">×</button>
+        <div class="modal__media">
+          <img id="mImg" alt="Фото" width="320" height="400" loading="lazy" decoding="async">
+        </div>
+        <div class="modal__info">
+          <div id="mTitle" class="modal__title"></div>
+          <div id="mSku"   class="modal__sku"></div>
+          <div id="mPrice" class="modal__price"></div>
+          <div id="mDesc"  class="modal__desc"></div>
+        </div>
+        <div class="modal__actions">
+          <button id="mLink"   class="btn btn--primary">Перейти по ссылке</button>
+          <button id="mClose2" class="btn">Закрыть</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(wrap);
+
+    // кэширую элементы
+    $modal     = wrap;
+    $modalCard = wrap.querySelector('.modal__card');
+    $mImg      = wrap.querySelector('#mImg');
+    $mTitle    = wrap.querySelector('#mTitle');
+    $mSku      = wrap.querySelector('#mSku');
+    $mPrice    = wrap.querySelector('#mPrice');
+    $mDesc     = wrap.querySelector('#mDesc');
+    $mLink     = wrap.querySelector('#mLink');
+    $mClose    = wrap.querySelector('.modal__close');
+
+    // закрытия
+    wrap.querySelector('.modal__backdrop').onclick = closeModal;
+    $mClose.onclick = closeModal;
+    wrap.querySelector('#mClose2').onclick = closeModal;
+    document.addEventListener('keydown', (e) => {
+      if (!$modal || $modal.classList.contains('hidden')) return;
+      if (e.key === 'Escape') closeModal();
+    });
+
+    modalCreated = true;
+  }
+
+  function openModal(product) {
+    ensureModal();
+
+    const photo = product.photo?.trim() || PLACEHOLDER;
+    $mImg.src = photo;
+    $mImg.alt = product.title || 'Фото';
+
+    $mTitle.textContent = product.title || '';
+    $mSku.textContent   = product.id ? String(product.id) : '';
+    $mPrice.textContent = `${fmtPrice(product.price)} ₽`;
+    $mDesc.textContent  = product.desc ? String(product.desc) : '';
+
+    const link = product.link?.trim();
+    if (link) {
+      $mLink.style.display = '';
+      $mLink.onclick = () => {
+        window.open(link, '_blank');
+        try { tg?.HapticFeedback?.impactOccurred('light'); } catch {}
+      };
+    } else {
+      $mLink.style.display = 'none';
+      $mLink.onclick = null;
+    }
+
+    $modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    try { tg?.HapticFeedback?.selectionChanged(); } catch {}
+  }
+
+  function closeModal() {
+    if ($modal) {
+      $modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+  }
 
   // === 2) Универсальная загрузка: Railway → fallback JSON
   async function getJSON(localPath, apiPath) {
@@ -63,7 +153,7 @@
     let activeCat = "Все";
 
     renderTabs(categories, activeCat, onChangeCat);
-    renderMobilePicker(categories, activeCat, onChangeCat); // NEW
+    renderMobilePicker(categories, activeCat, onChangeCat);
     renderList(products, activeCat);
 
     function onChangeCat(title) {
@@ -101,7 +191,7 @@
     activeEl?.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
   }
 
-  // === 4.1) Мобильный пикер: кнопка + bottom-sheet (вместо <select>)
+  // === 4.1) Мобильный пикер: кнопка + bottom-sheet
   function renderMobilePicker(categories, activeCat, onPick) {
     if (!$catBtn || !$catBtnText || !$catSheet || !$catSheetList) return;
 
@@ -113,10 +203,8 @@
       return true;
     })];
 
-    // Текст на кнопке
     $catBtnText.textContent = activeCat;
 
-    // Наполнение списка
     $catSheetList.innerHTML = "";
     list.forEach(c => {
       const item = document.createElement('button');
@@ -131,13 +219,12 @@
       $catSheetList.appendChild(item);
     });
 
-    // Открытие/закрытие
     $catBtn.onclick = openSheet;
     const $backdrop = $catSheet.querySelector('.sheet__backdrop');
     $backdrop.onclick = closeSheet;
   }
 
-  function openSheet() { $catSheet.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+  function openSheet()  { $catSheet.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
   function closeSheet() { $catSheet.classList.add('hidden');   document.body.style.overflow = '';       }
 
   // === 5) Рендер карточек (lazy + фикс 4:5 через .media)
@@ -180,13 +267,8 @@
         <button class="btn">Открыть</button>
       `;
 
-      card.querySelector(".btn").onclick = () => {
-        const link = it.link?.trim() || "";
-        if (link) {
-          window.open(link, "_blank");
-          try { tg?.HapticFeedback?.impactOccurred("light"); } catch {}
-        }
-      };
+      // Раньше тут открывали внешнюю ссылку. Теперь — модалку с данными товара.
+      card.querySelector(".btn").onclick = () => openModal(it);
 
       $grid.appendChild(card);
     });
