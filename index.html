@@ -64,7 +64,19 @@
     /* Контейнер */
     .wrap{max-width:1100px;margin:0 auto;padding:14px 18px}
 
-    /* Табы */
+    /* ===== Мобильный селект категорий ===== */
+    .filters{ display:none; padding:10px 18px 4px; align-items:center; gap:8px; }
+    .filters__label{ color:var(--muted); font-size:12px; }
+    .filters__select{
+      appearance:none; -webkit-appearance:none; -moz-appearance:none;
+      border:1px solid var(--line); background:#151a22; color:#cfd6e4;
+      border-radius:999px; padding:10px 16px; font:600 14px/1 Inter,system-ui;
+      outline:none; cursor:pointer;
+      background-image: linear-gradient(90deg, transparent, transparent);
+    }
+    .filters__select:focus{ border-color:#324059; }
+
+    /* Табы (чипы) — для десктопа */
     .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px}
     .tab{
       background:#151a22;border:1px solid var(--line);color:#cfd6e4;
@@ -75,6 +87,12 @@
       color:#0b0f14;background:linear-gradient(90deg,var(--acid),var(--acid-2));
       border-color:transparent;
       box-shadow:0 0 0 4px rgba(215,255,63,.12),0 8px 24px rgba(215,255,63,.18);
+    }
+
+    /* На узких экранах показываем селект и прячем чипы */
+    @media (max-width:700px){
+      .filters{ display:flex; }
+      .tabs{ display:none; }
     }
 
     /* Сетка карточек */
@@ -177,6 +195,12 @@
   </header>
 
   <div class="wrap">
+    <!-- Мобильный фильтр по категориям -->
+    <div class="filters">
+      <label class="filters__label" for="catSelect">Категория</label>
+      <select id="catSelect" class="filters__select"></select>
+    </div>
+
     <div id="tabs" class="tabs"></div>
     <main id="grid"></main>
   </div>
