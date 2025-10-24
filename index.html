@@ -141,7 +141,7 @@
       flex:1 1 auto;
     }
 
-    /* Заголовок: максимум 2 строки, фикс высота под 2 строки */
+    /* Заголовок: максимум 2 строки, фикс-высота под 2 строки + центр */
     .card .title{
       font-weight:600;
       line-height:1.2;
@@ -150,9 +150,10 @@
       -webkit-box-orient:vertical;
       overflow:hidden;
       min-height: calc(1.2em * 2);
+      text-align:center;
     }
 
-    /* SKU: одна строка фикс */
+    /* SKU: одна строка фикс + центр */
     .card .sku{
       color:var(--muted);
       font-size:12px;
@@ -161,6 +162,7 @@
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
+      text-align:center;
     }
 
     /* === Плашка цены: full width + центрирование === */
