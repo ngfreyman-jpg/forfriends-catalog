@@ -29,7 +29,7 @@
     }
     .ff-header__inner{
       max-width:1100px; margin:0 auto; padding:14px 18px;
-      display:flex; align-items:center; justify-content:center; /* центрируем лого */
+      display:flex; align-items:center; justify-content:center;
     }
     .ff-logo-wrap{ position:relative; display:inline-flex; }
     .ff-logo-wrap::before{
@@ -167,7 +167,7 @@
       padding:24px;border:1px dashed var(--line);border-radius:14px;background:#0e131d;
     }
 
-    /* ===== Product Modal (минимум) ===== */
+    /* ===== Product Modal ===== */
     .modal{ position:fixed; inset:0; z-index:70; display:none; }
     .modal.open{ display:block; }
     .modal__backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.55); }
@@ -187,6 +187,25 @@
       padding:10px 12px; border-radius:12px; font-weight:800;
     }
     .pm__desc{ color:#cfd6e4; font-size:14px; line-height:1.4; white-space:pre-wrap; }
+
+    /* Добавлено для заказа */
+    .pm__comment{
+      margin-top:6px;
+      width:100%; min-height:84px; resize:vertical;
+      background:#11161f; color:#e6eefc; border:1px solid #233045; border-radius:12px;
+      padding:10px 12px; font-size:14px; outline:none;
+    }
+    .pm__comment:focus{ border-color:#35507a; }
+    .pm__actions{
+      display:flex; gap:10px; margin-top:6px;
+    }
+    .pm__btn{
+      flex:1; padding:12px; border-radius:12px; font-weight:700; cursor:pointer; border:1px solid #2a354a;
+      background:#1b2331; color:#cfe1ff;
+    }
+    .pm__btn--primary{
+      background:linear-gradient(90deg,var(--acid),var(--acid-2)); color:#0b0f14; border-color:transparent;
+    }
     .pm__close{ position:absolute; top:10px; right:10px; background:#121923; border:1px solid #2a354a; color:#cfd6e4; border-radius:10px; padding:6px 10px; cursor:pointer;}
   </style>
 
@@ -244,10 +263,17 @@
         <div class="pm__sku" id="pm_sku"></div>
         <div class="pm__price"><span id="pm_price"></span> ₽</div>
         <div class="pm__desc" id="pm_desc"></div>
+
+        <!-- Новое: комментарий + кнопки -->
+        <textarea id="pm_comment" class="pm__comment" placeholder="Комментарий к заказу (размер, цвет, адрес, время и т. п.)"></textarea>
+        <div class="pm__actions">
+          <button id="pm_add" class="pm__btn">Добавить</button>
+          <button id="pm_submit" class="pm__btn pm__btn--primary">Отправить продавцу</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <script src="./app.js?v=4" defer></script>
+  <script src="./app.js?v=5" defer></script>
 </body>
 </html>
