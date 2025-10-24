@@ -7,10 +7,8 @@
   try {
     tg?.ready();
     tg?.expand();
-    // тёмный хром под тему каталога
     tg?.setHeaderColor?.('#0c0e11');
     tg?.setBackgroundColor?.('#0c0e11');
-    // на всякий: удерживаем цвет при смене темы
     tg?.onEvent?.('themeChanged', () => {
       tg?.setHeaderColor?.('#0c0e11');
       tg?.setBackgroundColor?.('#0c0e11');
@@ -20,7 +18,7 @@
   const $grid = document.getElementById("grid");
   const $tabs = document.getElementById("tabs");
 
-  // Плейсхолдер для пустых фото (800×1000 — под эти размеры задаём width/height)
+  // Плейсхолдер 800×1000 под рамку 4:5
   const PLACEHOLDER =
     "data:image/svg+xml;utf8," +
     encodeURIComponent(
@@ -32,7 +30,7 @@
       </svg>`
     );
 
-  // === 2) Универсальная загрузка: сначала Railway → fallback на локальный JSON
+  // === 2) Универсальная загрузка: Railway → fallback JSON
   async function getJSON(localPath, apiPath) {
     try {
       const r = await fetch(`${API_BASE}${apiPath}?v=${Date.now()}`, { cache: "no-store" });
@@ -71,7 +69,7 @@
     $grid.innerHTML = `<div class="empty">Не удалось загрузить каталог. Попробуйте обновить страницу.</div>`;
   });
 
-  // === 4) Рендер вкладок (с уникализацией)
+  // === 4) Рендер вкладок
   function renderTabs(categories, activeCat, onClick) {
     $tabs.innerHTML = "";
 
@@ -92,7 +90,7 @@
     });
   }
 
-  // === 5) Рендер карточек (lazy-loading + фиксированные размеры)
+  // === 5) Рендер карточек (lazy + фикс 4:5 через .media)
   function renderList(products, activeCat) {
     $grid.innerHTML = "";
 
@@ -113,15 +111,17 @@
       const photo = it.photo?.trim() || PLACEHOLDER;
 
       card.innerHTML = `
-        <img
-          class="photo"
-          src="${photo || PLACEHOLDER}"
-          alt=""
-          loading="lazy"
-          decoding="async"
-          width="800"
-          height="1000"
-        >
+        <div class="media">
+          <img
+            class="photo"
+            src="${photo}"
+            alt="${escapeHTML(it.title || 'Фото')}"
+            loading="lazy"
+            decoding="async"
+            width="800"
+            height="1000"
+          >
+        </div>
         <div class="info">
           <div class="title">${escapeHTML(it.title || "")}</div>
           <div class="sku">${escapeHTML(it.id || "")}</div>
