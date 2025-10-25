@@ -140,7 +140,7 @@
     if ($pmImg)   { $pmImg.src = photo; $pmImg.alt = product.title || 'Фото'; }
     if ($pmTitle) $pmTitle.textContent = product.title || '';
     if ($pmSku)   $pmSku.textContent   = product.id ? String(product.id) : '';
-    if ($pmPrice) $pmPrice.textContent = fmtPrice(product.price);
+    if ($pmPrice) $pmPrice.textContent = fmtPrice(product.price) + ' ₽';
     if ($pmDesc)  $pmDesc.textContent  = product.desc ? String(product.desc) : '';
     if ($pmComment) $pmComment.value = order.comment || '';
 
@@ -189,7 +189,7 @@
     }
   });
 
-  // === SEND ORDER (ключевой патч) ===
+  // === SEND ORDER (только вручную, окно НЕ закрываем) ===
   function getCartItems() {
     return (order.items || []).map(it => ({
       id: String(it.id ?? '').trim(),
@@ -200,10 +200,14 @@
   }
   function getComment() { return (order.comment || '').trim(); }
 
+  let isSendingOrder = false;
+
   $pmSubmit?.addEventListener('click', () => {
+    if (isSendingOrder) return;
+
     const items = getCartItems();
     if (!items.length) {
-      $pmSubmit.classList.add('shake'); setTimeout(()=> $pmSubmit.classList.remove('shake'), 350);
+      $pmSubmit.classList.add('shake'); setTimeout(()=> $pmSubmit.classList.remove('shake'), 320);
       return;
     }
     const total = items.reduce((s, x) => s + x.price * x.qty, 0);
@@ -219,22 +223,35 @@
     const json = JSON.stringify(payload);
     console.log('[TG] sendData len=', json.length, 'payload=', payload);
 
-    if (json.length > 3800) { // запас до 4096
-      tg?.showAlert?.('Слишком большой заказ. Уменьшите количество позиций и попробуйте ещё раз.');
+    if (json.length > 3800) {
+      tg?.showAlert?.('Слишком большой заказ. Уменьшите список и попробуйте ещё раз.');
+      return;
+    }
+    if (!tg?.sendData) {
+      alert('Открой каталог из кнопки бота — только так можно отправить заказ.');
       return;
     }
 
+    // статус и защита от повтора
+    isSendingOrder = true;
+    const oldText = $pmSubmit.textContent;
+    $pmSubmit.disabled = true;
+    $pmSubmit.textContent = 'Отправляем…';
+
     try {
-      if (tg?.sendData) {
-        tg.sendData(json);                 // <-- отправка в бота
-        try { tg?.HapticFeedback?.notificationOccurred('success'); } catch {}
-        setTimeout(() => tg.close?.(), 50); // UX: закрываем окно
-      } else {
-        alert('Отправка доступна внутри Telegram.\n\n' + JSON.stringify(payload, null, 2));
-      }
+      tg.sendData(json);                                  // ← сюда ловит бот
+      try { tg?.HapticFeedback?.notificationOccurred('success'); } catch {}
+      tg?.showAlert?.('✅ Заказ отправлен. Проверьте ЛС бота.');
     } catch (e) {
       console.error('[TG] sendData error', e);
       tg?.showAlert?.('Не удалось отправить заказ. Попробуйте ещё раз.');
+    } finally {
+      // возвращаем кнопку; окно НЕ закрываем
+      setTimeout(() => {
+        isSendingOrder = false;
+        $pmSubmit.disabled = false;
+        $pmSubmit.textContent = oldText || 'Отправить продавцу';
+      }, 500);
     }
   });
 
