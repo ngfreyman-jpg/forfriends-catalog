@@ -17,6 +17,27 @@
     console.warn('[TG] init failed', e);
   }
 
+  // === self-check: показать, что мы внутри Telegram WebApp ===
+  try {
+    if (tg?.initDataUnsafe?.user) {
+      tg.showAlert?.(`WebApp ОК, user id: ${tg.initDataUnsafe.user.id}`);
+    }
+  } catch {}
+
+  // === DEBUG: ?debug=1 → отправить тестовый ping в бота (окно НЕ закрываем)
+  (function debugAutoSend() {
+    try {
+      const sp = new URLSearchParams(location.search);
+      if (sp.get('debug') === '1' && tg?.sendData) {
+        const testPayload = { ping: 1, ts: Date.now(), user: tg.initDataUnsafe?.user?.id || null };
+        const js = JSON.stringify(testPayload);
+        console.log('[TG][DEBUG] sendData len=', js.length, 'payload=', testPayload);
+        tg.sendData(js);
+        tg.showAlert?.('Тестовый ping отправлен в бота (debug=1). Проверь логи и чат.');
+      }
+    } catch (e) { console.warn('debugAutoSend error', e); }
+  })();
+
   // === DOM refs ===
   const $grid  = document.getElementById("grid");
   const $tabs  = document.getElementById("tabs");
