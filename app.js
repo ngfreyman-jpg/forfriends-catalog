@@ -1,17 +1,23 @@
 (function () {
   const API_BASE = 'https://forfriends-sync-production.up.railway.app';
 
-  // Telegram WebApp
-  const tg = window.Telegram?.WebApp;
+  // === Telegram WebApp init ===
+  const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
   try {
-    tg?.ready(); tg?.expand();
-    tg?.setHeaderColor?.('#0c0e11'); tg?.setBackgroundColor?.('#0c0e11');
+    tg?.ready();
+    tg?.expand();
+    tg?.setHeaderColor?.('#0c0e11');
+    tg?.setBackgroundColor?.('#0c0e11');
     tg?.onEvent?.('themeChanged', () => {
-      tg?.setHeaderColor?.('#0c0e11'); tg?.setBackgroundColor?.('#0c0e11');
+      tg?.setHeaderColor?.('#0c0e11');
+      tg?.setBackgroundColor?.('#0c0e11');
     });
-  } catch {}
+    console.log('[TG] ready. user=', tg?.initDataUnsafe?.user);
+  } catch (e) {
+    console.warn('[TG] init failed', e);
+  }
 
-  // DOM
+  // === DOM refs ===
   const $grid  = document.getElementById("grid");
   const $tabs  = document.getElementById("tabs");
   const $catBtn       = document.getElementById("catBtn");
@@ -33,17 +39,29 @@
   const $appHeader = document.getElementById('appHeader');
   const $appMain   = document.getElementById('appMain');
 
-  // Корзина
+  // === Cart state ===
   const order = (window.order = window.order || { items: [], comment: "" });
   let currentProduct = null;
 
-  // Deep-link helpers
-  function getUrlId()            { return new URLSearchParams(location.search).get('id'); }
-  function getStartParam()       { return tg?.initDataUnsafe?.start_param || null; }
-  function setUrlId(id, push)    { try { const u=new URL(location.href); u.searchParams.set('id', String(id)); (push?history.pushState:history.replaceState).call(history,{id:String(id)},'',u.toString()); } catch{} }
-  function clearUrlId(push)      { try { const u=new URL(location.href); u.searchParams.delete('id'); (push?history.pushState:history.replaceState).call(history,{},'',u.pathname+u.search+u.hash); } catch{} }
+  // === Deep link helpers ===
+  function getUrlId()      { return new URLSearchParams(location.search).get('id'); }
+  function getStartParam() { return tg?.initDataUnsafe?.start_param || null; }
+  function setUrlId(id, push) {
+    try {
+      const u=new URL(location.href);
+      u.searchParams.set('id', String(id));
+      (push?history.pushState:history.replaceState).call(history,{id:String(id)},'',u.toString());
+    } catch {}
+  }
+  function clearUrlId(push) {
+    try {
+      const u=new URL(location.href);
+      u.searchParams.delete('id');
+      (push?history.pushState:history.replaceState).call(history,{},'',u.pathname+u.search+u.hash);
+    } catch {}
+  }
 
-  // Placeholder
+  // === placeholder for photos ===
   const PLACEHOLDER = "data:image/svg+xml;utf8,"+encodeURIComponent(
     `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 1000'>
       <rect width='100%' height='100%' fill='#111'/>
@@ -52,75 +70,49 @@
             font-size='36' fill='#777'>Фото</text>
     </svg>`);
 
-  // ====== A11y: focus trap utilities ======
+  // === A11y focus trap ===
   const FOCUSABLE_SEL = [
-    'a[href]', 'button:not([disabled])', 'textarea:not([disabled])',
-    'input:not([disabled]):not([type="hidden"])', 'select:not([disabled])',
+    'a[href]','button:not([disabled])','textarea:not([disabled])',
+    'input:not([disabled]):not([type="hidden"])','select:not([disabled])',
     '[tabindex]:not([tabindex="-1"])'
   ].join(',');
-
   let lastActiveBeforeModal = null;
   let trapKeydownHandler = null;
 
   function setInertOnBackground(on) {
-    // делаем фон недоступным
     [$appHeader, $appMain].forEach(el => {
       if (!el) return;
-      if (on) {
-        el.setAttribute('aria-hidden', 'true');
-        el.setAttribute('inert', '');
-      } else {
-        el.removeAttribute('aria-hidden');
-        el.removeAttribute('inert');
-      }
+      if (on) { el.setAttribute('aria-hidden','true'); el.setAttribute('inert',''); }
+      else { el.removeAttribute('aria-hidden'); el.removeAttribute('inert'); }
     });
   }
-
   function trapFocusIn(modalEl) {
     const focusables = Array.from(modalEl.querySelectorAll(FOCUSABLE_SEL))
-      .filter(el => el.offsetParent !== null || modalEl.contains(el)); // видимые
-
-    if (focusables.length) {
-      focusables[0].focus();
-    } else {
-      // если нет фокусируемых — фокус на панель
-      modalEl.focus();
-    }
-
+      .filter(el => el.offsetParent !== null || modalEl.contains(el));
+    (focusables[0] || modalEl).focus();
     trapKeydownHandler = (e) => {
       if (e.key !== 'Tab') return;
       const els = Array.from(modalEl.querySelectorAll(FOCUSABLE_SEL))
         .filter(el => el.offsetParent !== null || modalEl.contains(el));
       if (!els.length) { e.preventDefault(); return; }
-      const first = els[0], last = els[els.length - 1];
-      const active = document.activeElement;
-
+      const first = els[0], last = els[els.length-1], active = document.activeElement;
       if (e.shiftKey) {
-        if (active === first || !modalEl.contains(active)) {
-          last.focus(); e.preventDefault();
-        }
+        if (active === first || !modalEl.contains(active)) { last.focus(); e.preventDefault(); }
       } else {
-        if (active === last) {
-          first.focus(); e.preventDefault();
-        }
+        if (active === last) { first.focus(); e.preventDefault(); }
       }
     };
     document.addEventListener('keydown', trapKeydownHandler, true);
   }
-
   function releaseFocusTrap() {
-    if (trapKeydownHandler) {
-      document.removeEventListener('keydown', trapKeydownHandler, true);
-      trapKeydownHandler = null;
-    }
+    if (trapKeydownHandler) document.removeEventListener('keydown', trapKeydownHandler, true);
+    trapKeydownHandler = null;
   }
 
-  // ===== Modal open/close =====
+  // === Modal open/close ===
   function openModal(product, { setUrl = true } = {}) {
     if (!$pm) return;
-
     lastActiveBeforeModal = document.activeElement || null;
-
     currentProduct = product || null;
 
     const photo = (product.photo || '').trim() || PLACEHOLDER;
@@ -129,62 +121,42 @@
     if ($pmSku)   $pmSku.textContent   = product.id ? String(product.id) : '';
     if ($pmPrice) $pmPrice.textContent = fmtPrice(product.price);
     if ($pmDesc)  $pmDesc.textContent  = product.desc ? String(product.desc) : '';
-
     if ($pmComment) $pmComment.value = order.comment || '';
 
     const already = order.items.find(x => String(x.id) === String(product.id));
     if ($pmAdd){ $pmAdd.textContent = already ? 'В корзине' : 'Добавить'; $pmAdd.disabled = !!already; }
 
-    // показать
     $pm.classList.add('open');
     $pm.removeAttribute('aria-hidden');
     document.body.style.overflow = 'hidden';
     setInertOnBackground(true);
-
-    // a11y: поставить фокус внутрь и ловить Tab
-    ($pmPanel || $pm).setAttribute('tabindex', '-1');
+    ($pmPanel || $pm).setAttribute('tabindex','-1');
     trapFocusIn($pmPanel || $pm);
 
     if (setUrl && product?.id != null) setUrlId(product.id);
-
     try { tg?.HapticFeedback?.selectionChanged(); } catch {}
   }
-
   function closeModal({ clearUrl = true } = {}) {
     if (!$pm) return;
-
     releaseFocusTrap();
     setInertOnBackground(false);
-
     $pm.classList.remove('open');
-    $pm.setAttribute('aria-hidden', 'true');
+    $pm.setAttribute('aria-hidden','true');
     document.body.style.overflow = '';
-
     if (clearUrl) clearUrlId();
-
-    // вернуть фокус на кнопку-источник, если жива; иначе — на категорию
-    if (lastActiveBeforeModal && document.contains(lastActiveBeforeModal)) {
-      lastActiveBeforeModal.focus();
-    } else if ($catBtn) {
-      $catBtn.focus();
-    }
+    if (lastActiveBeforeModal && document.contains(lastActiveBeforeModal)) lastActiveBeforeModal.focus();
+    else if ($catBtn) $catBtn.focus();
     lastActiveBeforeModal = null;
   }
 
-  // Крестик/фон/Escape
   if ($pm) {
-    document.querySelectorAll('[data-close="pm"]').forEach(el => {
-      el.addEventListener('click', () => closeModal({ clearUrl: true }));
-    });
+    document.querySelectorAll('[data-close="pm"]').forEach(el => el.addEventListener('click', () => closeModal({ clearUrl: true })));
     const $backdrop = $pm.querySelector('.modal__backdrop');
     if ($backdrop) $backdrop.addEventListener('click', () => closeModal({ clearUrl: true }));
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && $pm.classList.contains('open')) closeModal({ clearUrl: true });
-    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $pm.classList.contains('open')) closeModal({ clearUrl: true }); });
   }
 
-  // Комментарий / корзина
+  // === Comment / Add-to-cart ===
   $pmComment?.addEventListener('input', (e)=> { order.comment = String(e.target.value || '').slice(0, 800); });
   $pmAdd?.addEventListener('click', ()=>{
     if (!currentProduct) return;
@@ -195,30 +167,57 @@
       try { tg?.HapticFeedback?.impactOccurred('light'); } catch {}
     }
   });
-  $pmSubmit?.addEventListener('click', ()=>{
-    if (!order.items.length){
+
+  // === SEND ORDER (ключевой патч) ===
+  function getCartItems() {
+    return (order.items || []).map(it => ({
+      id: String(it.id ?? '').trim(),
+      title: String(it.title ?? '').trim(),
+      price: Number(it.price ?? 0) || 0,
+      qty: Number(it.qty ?? 1) || 1
+    })).filter(x => x.id && x.title);
+  }
+  function getComment() { return (order.comment || '').trim(); }
+
+  $pmSubmit?.addEventListener('click', () => {
+    const items = getCartItems();
+    if (!items.length) {
       $pmSubmit.classList.add('shake'); setTimeout(()=> $pmSubmit.classList.remove('shake'), 350);
       return;
     }
-    const total = order.items.reduce((s, it)=> s + (Number(it.price||0) * Number(it.qty||1)), 0);
+    const total = items.reduce((s, x) => s + x.price * x.qty, 0);
     const payload = {
-      items: order.items.map(({id,title,price,qty})=>({id,title,price,qty})),
-      comment: order.comment || '',
-      total,
-      ts: Date.now(),
+      items, total,
+      comment: getComment(),
       user: tg?.initDataUnsafe?.user ? {
         id: tg.initDataUnsafe.user.id,
         username: tg.initDataUnsafe.user.username || '',
         name: [tg.initDataUnsafe.user.first_name, tg.initDataUnsafe.user.last_name].filter(Boolean).join(' ')
       } : {}
     };
+    const json = JSON.stringify(payload);
+    console.log('[TG] sendData len=', json.length, 'payload=', payload);
+
+    if (json.length > 3800) { // запас до 4096
+      tg?.showAlert?.('Слишком большой заказ. Уменьшите количество позиций и попробуйте ещё раз.');
+      return;
+    }
+
     try {
-      if (tg?.sendData){ tg.sendData(JSON.stringify(payload)); try { tg?.HapticFeedback?.notificationOccurred('success'); } catch {} setTimeout(()=> tg.close?.(), 50); }
-      else { alert('Отправка заказа доступна внутри Telegram.\n\n' + JSON.stringify(payload, null, 2)); }
-    } catch { alert('Не удалось отправить заказ. Попробуйте ещё раз.'); }
+      if (tg?.sendData) {
+        tg.sendData(json);                 // <-- отправка в бота
+        try { tg?.HapticFeedback?.notificationOccurred('success'); } catch {}
+        setTimeout(() => tg.close?.(), 50); // UX: закрываем окно
+      } else {
+        alert('Отправка доступна внутри Telegram.\n\n' + JSON.stringify(payload, null, 2));
+      }
+    } catch (e) {
+      console.error('[TG] sendData error', e);
+      tg?.showAlert?.('Не удалось отправить заказ. Попробуйте ещё раз.');
+    }
   });
 
-  // Делегирование кликов по карточкам — открытие модалки
+  // === Делегирование кликов по карточкам → модалка ===
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.card .btn');
     if (!btn) return;
@@ -235,19 +234,21 @@
     if (product) openModal(product, { setUrl: true });
   });
 
-  // Загрузка данных
+  // === Data loading (API → fallback to local) ===
   async function getJSON(localPath, apiPath) {
     try {
       const r = await fetch(`${API_BASE}${apiPath}?v=${Date.now()}`, { cache: "no-store" });
-      if (!r.ok) throw new Error(`API ${r.status}`); return await r.json();
+      if (!r.ok) throw new Error(`API ${r.status}`);
+      return await r.json();
     } catch {
       const r = await fetch(`${localPath}?v=${Date.now()}`, { cache: "no-store" });
-      if (!r.ok) throw new Error(`LOCAL ${r.status}`); return await r.json();
+      if (!r.ok) throw new Error(`LOCAL ${r.status}`);
+      return await r.json();
     }
   }
   const toItems = (data) => (Array.isArray(data?.items) ? data.items : []);
 
-  // Старт
+  // === Boot ===
   Promise.all([
     getJSON("./data/products.json",   "/catalog/products"),
     getJSON("./data/categories.json", "/catalog/categories")
@@ -290,7 +291,7 @@
     $grid.innerHTML = `<div class="empty">Не удалось загрузить каталог. Попробуйте обновить страницу.</div>`;
   });
 
-  // Рендер вкладок
+  // === UI renders ===
   function renderTabs(categories, activeCat, onClick) {
     $tabs.innerHTML = "";
     const seen = new Set(["Все"]);
@@ -309,11 +310,9 @@
       $tabs.appendChild(b);
     });
 
-    const activeEl = $tabs.querySelector('.tab.active');
-    activeEl?.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+    $tabs.querySelector('.tab.active')?.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
   }
 
-  // Мобильный пикер
   function renderMobilePicker(categories, activeCat, onPick) {
     if (!$catBtn || !$catBtnText || !$catSheet || !$catSheetList) return;
 
@@ -323,7 +322,6 @@
     })];
 
     $catBtnText.textContent = activeCat;
-
     $catSheetList.innerHTML = "";
     list.forEach(c => {
       const item = document.createElement('button');
@@ -337,19 +335,17 @@
     });
 
     $catBtn.onclick = openSheet;
-    const $backdrop = $catSheet.querySelector('.sheet__backdrop');
-    $backdrop.onclick = closeSheet;
+    $catSheet.querySelector('.sheet__backdrop')?.addEventListener('click', closeSheet);
   }
   function openSheet()  { $catSheet.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
   function closeSheet() { $catSheet.classList.add('hidden');   document.body.style.overflow = '';       }
 
-  // Рендер карточек
   function renderList(products, activeCat) {
     $grid.innerHTML = "";
     const list = products.filter((p) => activeCat === "Все" || p.category === activeCat);
     window.state.filtered = list;
 
-    if (list.length === 0) {
+    if (!list.length) {
       $grid.innerHTML = `<div class="empty">Тут пока пусто. Добавьте товары в <code>data/products.json</code>.</div>`;
       return;
     }
@@ -363,15 +359,11 @@
 
       card.innerHTML = `
         <div class="media">
-          <img
-            class="photo"
-            src="${photo}"
-            alt="${escapeHTML(it.title || 'Фото')}"
-            loading="lazy"
-            decoding="async"
-            width="800"
-            height="1000"
-          >
+          <img class="photo"
+               src="${photo}"
+               alt="${escapeHTML(it.title || 'Фото')}"
+               loading="lazy" decoding="async"
+               width="800" height="1000">
         </div>
         <div class="info">
           <div class="title">${escapeHTML(it.title || "")}</div>
@@ -384,7 +376,7 @@
     });
   }
 
-  // helpers
-  function fmtPrice(v) { const n = Number(v || 0); return n.toLocaleString("ru-RU"); }
-  function escapeHTML(s) { return String(s).replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m])); }
+  // === helpers ===
+  function fmtPrice(v){ return Number(v || 0).toLocaleString('ru-RU'); }
+  function escapeHTML(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
 })();
