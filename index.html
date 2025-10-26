@@ -12,71 +12,79 @@
 
   <style>
     :root{
-      --bg:#0c0e11; --card:#12161d; --muted:#9aa3b2; --fg:#f2f5f7;
-      --line:#232a36; --acid:#D7FF3F; --acid-2:#B7FF2E; --danger:#ff6b6b;
-      --shadow:0 10px 30px rgba(0,0,0,.35);
+      /* Светлая тема по мокапу */
+      --bg:#f6f7f9;           /* общий фон */
+      --fg:#0b0f14;          /* основной текст */
+      --muted:#6b7280;       /* вторичный текст */
+      --line:#e6e8ee;        /* границы/разделители */
+      --card:#ffffff;        /* фон карточек/панелей */
+      --shadow:0 10px 30px rgba(24,32,56,.08);
+
+      --chip:#eff2f6;        /* фон чипов/кнопок по умолчанию */
+      --chip-fg:#1f2937;
+      --chip-active:#ffd83b; /* жёлтая акцентная (ценник/актив) */
+      --chip-active-2:#ffc82a;
+
+      --btn:#111827;         /* тёмный текст на жёлтом */
+      --accent:#ffd83b;
+      --accent-2:#ffc82a;
     }
+
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{ margin:0; background:var(--bg); color:var(--fg);
-      font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+    body{
+      margin:0; background:var(--bg); color:var(--fg);
+      font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    }
 
-    /* ===== Header: логотип ===== */
+    /* ===== Header ===== */
     .ff-header{
-      position:sticky; top:0; z-index:50; backdrop-filter:blur(8px);
-      background:linear-gradient(180deg,rgba(16,18,23,.75),rgba(16,18,23,.35));
-      border-bottom:1px solid #1d2230;
+      position:sticky; top:0; z-index:50;
+      backdrop-filter:saturate(180%) blur(8px);
+      background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,.65));
+      border-bottom:1px solid var(--line);
     }
     .ff-header__inner{
       max-width:1100px; margin:0 auto; padding:14px 18px;
       display:flex; align-items:center; justify-content:center;
     }
     .ff-logo-wrap{ position:relative; display:inline-flex; }
-    .ff-logo-wrap::before{
-      content:""; position:absolute; left:50%; bottom:-6px; translate:-50% 0;
-      width:clamp(180px,30vw,420px); height:clamp(40px,8vw,120px);
-      background:radial-gradient(60% 60% at 50% 50%,
-        rgba(215,255,63,.32) 0%, rgba(215,255,63,.10) 55%, rgba(215,255,63,0) 75%);
-      filter:blur(18px); opacity:.9; pointer-events:none;
-    }
     .ff-logo{
-      height:64px; width:auto; object-fit:contain;
-      filter:
-        drop-shadow(0 0 6px  rgba(215,255,63,.22))
-        drop-shadow(0 0 14px rgba(215,255,63,.16))
-        drop-shadow(0 0 28px rgba(215,255,63,.10));
+      height:54px; width:auto; object-fit:contain;
+      filter:drop-shadow(0 2px 6px rgba(0,0,0,.04));
     }
 
-    /* Контейнер */
     .wrap{max-width:1100px;margin:0 auto;padding:14px 18px}
 
     /* ===== Категории ===== */
-    .filters{ display:flex; align-items:center; gap:10px; margin:10px 0 8px; }
+    .filters{ display:flex; align-items:center; gap:12px; margin:6px 0 12px; }
     .filters__label{ color:var(--muted); font-size:12px; white-space:nowrap; }
 
-    /* Вариант 1 — табы (десктоп) */
+    /* Табы (десктоп) */
     .tabs{display:flex;gap:8px;flex-wrap:wrap}
     .tab{
-      background:#151a22;border:1px solid var(--line);color:#cfd6e4;
-      border-radius:999px;padding:8px 14px;transition:.2s;cursor:pointer;font-weight:600
+      background:var(--chip); color:var(--chip-fg);
+      border:1px solid var(--line);
+      border-radius:999px; padding:8px 14px; cursor:pointer;
+      transition:.18s; font-weight:600;
     }
-    .tab:hover{border-color:#324059}
+    .tab:hover{ filter:brightness(.98) }
     .tab.active{
-      color:#0b0f14;background:linear-gradient(90deg,var(--acid),var(--acid-2));
+      color:var(--btn);
+      background:linear-gradient(90deg,var(--chip-active),var(--chip-active-2));
       border-color:transparent;
-      box-shadow:0 0 0 4px rgba(215,255,63,.12),0 8px 24px rgba(215,255,63,.18);
+      box-shadow:0 0 0 3px rgba(255,216,59,.25);
     }
 
-    /* Вариант 2 — select (мобилки) */
+    /* Select (мобилки) */
     .cat-select{
       appearance:none; -webkit-appearance:none; -moz-appearance:none;
-      background:#151a22 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cfd6e4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center/18px;
-      border:1px solid var(--line); color:#e6ebf5; border-radius:12px;
+      background:var(--chip) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='16' viewBox='0 0 24 24' fill='none' stroke='%231f2937' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center/18px;
+      border:1px solid var(--line); color:var(--chip-fg); border-radius:12px;
       padding:10px 38px 10px 12px; font-weight:600;
     }
-    .cat-select:focus{ outline:none; border-color:#324059; }
+    .cat-select:focus{ outline:none; box-shadow:0 0 0 3px rgba(31,41,55,.08) }
 
-    /* Переключение видимости */
     .only-desktop{ display:flex; }
     .only-mobile{ display:none; }
     @media (max-width: 640px){
@@ -91,78 +99,102 @@
     @media (min-width:980px){#grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 
     .card{
-      background:radial-gradient(140% 120% at 10% -10%,rgba(215,255,63,.06) 0%,rgba(18,22,29,0) 30%),var(--card);
-      border:1px solid var(--line);border-radius:24px;overflow:hidden;display:flex;flex-direction:column;
-      box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease,border-color .18s;
+      background:var(--card);
+      border:1px solid var(--line); border-radius:20px; overflow:hidden;
+      display:flex; flex-direction:column; box-shadow:var(--shadow);
+      transition:transform .18s ease, box-shadow .18s ease;
     }
-    .card:hover{ transform:translateY(-2px); border-color:#2c3546; box-shadow:0 12px 40px rgba(0,0,0,.45),0 0 0 4px rgba(215,255,63,.06) inset; }
-    .card .media{ position:relative;width:100%; padding-top:125%; background:#0f131a; border-bottom:1px solid #1b2231; }
+    .card:hover{ transform:translateY(-2px); box-shadow:0 14px 36px rgba(24,32,56,.12); }
+    .card .media{ position:relative;width:100%; padding-top:125%; background:#f1f3f6; border-bottom:1px solid var(--line); }
     .card .media > img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
     .card .info{ padding:14px 14px 10px; display:flex; flex-direction:column; gap:8px; flex:1 }
-    .card .title{ font-weight:600; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.4em; text-align:center; }
+    .card .title{ font-weight:700; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.4em; text-align:center;}
     .card .sku{ color:var(--muted); font-size:12px; text-align:center;}
     .card .price{
-      display:flex; align-items:center; justify-content:center; gap:6px; font-weight:800; color:#0b0f14;
-      padding:10px 12px; border-radius:12px; background:linear-gradient(90deg,var(--acid),var(--acid-2));
+      display:flex; align-items:center; justify-content:center; gap:6px; font-weight:800; color:var(--btn);
+      padding:10px 12px; border-radius:12px; background:linear-gradient(90deg,var(--accent),var(--accent-2));
     }
-    .btn{ background:#1b2331;color:#cfe1ff;border:1px solid #2a354a;border-radius:12px; padding:10px 12px;margin:12px;cursor:pointer;font-weight:600; }
-    .btn:hover{border-color:#3a4a66}
+    .btn{
+      background:#ffffff; color:#1f2937; border:1px solid var(--line);
+      border-radius:12px; padding:10px 12px; margin:12px; cursor:pointer; font-weight:700;
+    }
+    .btn:hover{ background:#fafafa }
 
-    .empty{ grid-column:1/-1;text-align:center;color:var(--muted); padding:24px;border:1px dashed var(--line);border-radius:14px;background:#0e131d; }
+    .empty{ grid-column:1/-1;text-align:center;color:var(--muted); padding:24px;border:1px dashed var(--line);border-radius:14px;background:#fff; }
 
-    /* ===== Модалка товара ===== */
+    /* ===== Модалка товара — светлая карточка с секцией «Добавить» ===== */
     .modal{ position:fixed; inset:0; z-index:70; display:none; }
     .modal.open{ display:block; }
-    .modal__backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.55); }
+    .modal__backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.45); }
     .modal__panel{
       position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
       width:min(94vw,740px); max-height:90vh; overflow:auto;
-      background:#0f131a; border:1px solid #1f2734; border-radius:20px;
-      box-shadow:0 20px 60px rgba(0,0,0,.5);
+      background:var(--card); border:1px solid var(--line); border-radius:20px;
+      box-shadow:0 24px 64px rgba(24,32,56,.2);
     }
-    .pm__media{ position:relative; padding-top:66%; background:#0b0f14; border-bottom:1px solid #1b2231;}
+    .pm__media{ position:relative; padding-top:66%; background:#f1f3f6; border-bottom:1px solid var(--line);}
     .pm__media img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
     .pm__body{ padding:16px; display:grid; gap:12px; }
     .pm__title{ font-weight:800; font-size:18px; text-align:center; }
-    .pm__sku{ color:#9aa3b2; font-size:12px; text-align:center;}
-    .pm__price{ display:flex; justify-content:center; align-items:center; gap:8px; background:linear-gradient(90deg,var(--acid),var(--acid-2)); color:#0b0f14; padding:10px 12px; border-radius:12px; font-weight:800; }
-    .pm__desc{ color:#cfd6e4; font-size:14px; line-height:1.4; white-space:pre-wrap; }
+    .pm__sku{ color:var(--muted); font-size:12px; text-align:center;}
+    .pm__price{ display:flex; justify-content:center; align-items:center; gap:8px; background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:var(--btn); padding:10px 12px; border-radius:12px; font-weight:800; }
 
-    .pm__comment{ width:100%; min-height:84px; background:#11161f; color:#e6eefc; border:1px solid #233045; border-radius:12px; padding:10px 12px; }
+    .pm__section-title{ font-weight:800; margin-top:6px; }
+    .pm__comment{
+      width:100%; min-height:84px; background:#ffffff; color:var(--fg);
+      border:1px solid var(--line); border-radius:12px; padding:10px 12px;
+    }
     .pm__actions{ display:flex; gap:10px; }
-    .pm__btn{ flex:1; padding:12px; border-radius:12px; font-weight:800; cursor:pointer; border:1px solid #2a354a; background:#1b2331; color:#cfe1ff; }
-    .pm__btn--primary{ background:linear-gradient(90deg,var(--acid),var(--acid-2)); color:#0b0f14; border-color:transparent; }
-    .pm__close{ position:absolute; top:10px; right:10px; background:#121923; border:1px solid #2a354a; color:#cfd6e4; border-radius:10px; padding:6px 10px; cursor:pointer;}
+    .pm__btn{
+      flex:1; padding:12px; border-radius:12px; font-weight:800; cursor:pointer;
+      border:1px solid var(--line); background:#fff; color:#111827;
+    }
+    .pm__btn--primary{
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      color:var(--btn); border-color:transparent;
+      box-shadow:0 0 0 3px rgba(255,216,59,.25);
+    }
+    .pm__close{
+      position:absolute; top:10px; right:10px;
+      background:#fff; border:1px solid var(--line); color:#111827;
+      border-radius:10px; padding:6px 10px; cursor:pointer;
+    }
 
-    /* ===== Кнопка корзины и оверлей ===== */
+    /* ===== FAB корзины + оверлей ===== */
     .cart-fab{
       position:fixed; right:16px; bottom:16px; z-index:65;
-      background:#c8ff3d; color:#111; border:none; border-radius:999px;
-      padding:10px 14px; font-weight:800; box-shadow:0 6px 20px rgba(0,0,0,.25);
+      background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:var(--btn);
+      border:none; border-radius:999px;
+      padding:10px 14px; font-weight:800; box-shadow:0 10px 24px rgba(24,32,56,.16);
       cursor:pointer;
     }
-    .cart-sheet{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:66; display:none; }
+    .cart-sheet{ position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:66; display:none; }
     .cart-sheet[aria-hidden="false"]{ display:block; }
     .cart-sheet__panel{
-      position:absolute; right:0; top:0; bottom:0; width:min(520px,100%); background:#111; color:#eee;
-      display:flex; flex-direction:column; padding:16px 16px 12px; border-left:1px solid #222;
+      position:absolute; right:0; top:0; bottom:0; width:min(520px,100%);
+      background:#ffffff; color:#111827; display:flex; flex-direction:column;
+      padding:16px 16px 12px; border-left:1px solid var(--line); box-shadow:var(--shadow);
     }
     .cart-sheet__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
-    .cart-sheet__title{ font-size:18px; margin:0;}
-    .cart-sheet__x{ background:transparent; border:none; color:#bbb; font-size:18px; cursor:pointer; }
-    .cart-sheet__list{ flex:1; overflow:auto; border-top:1px solid #222; border-bottom:1px solid #222; margin:8px 0;}
-    .cart-item{ display:grid; grid-template-columns:1fr auto; gap:8px; padding:10px 0; border-bottom:1px dashed #222;}
+    .cart-sheet__title{ font-size:20px; margin:0; font-weight:800;}
+    .cart-sheet__x{ background:#fff; border:1px solid var(--line); color:#111827; border-radius:8px; padding:6px 10px; cursor:pointer; }
+    .cart-sheet__list{ flex:1; overflow:auto; border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin:8px 0;}
+    .cart-item{ display:grid; grid-template-columns:1fr auto; gap:8px; padding:10px 0; border-bottom:1px dashed var(--line);}
     .cart-item__title{ font-weight:700;}
-    .cart-item__meta{ color:#aaa; font-size:12px;}
+    .cart-item__meta{ color:var(--muted); font-size:12px;}
     .cart-item__controls{ display:flex; align-items:center; gap:8px;}
-    .cart-btn{ width:28px; height:28px; border-radius:6px; border:1px solid #333; background:#1a1a1a; color:#ddd; cursor:pointer;}
+    .cart-btn{ width:28px; height:28px; border-radius:6px; border:1px solid var(--line); background:#fff; color:#111; cursor:pointer;}
     .cart-qty{ min-width:28px; text-align:center;}
-    .cart-remove{ border:none; background:#261a1a; color:#f77; padding:6px 8px; border-radius:6px; cursor:pointer;}
-    .cart-sheet__label{ font-size:12px; color:#aaa; margin-top:6px; }
-    .cart-sheet__comment{ width:100%; min-height:84px; background:#0e0e0e; color:#ddd; border:1px solid #222; border-radius:10px; padding:10px; }
+    .cart-remove{ border:1px solid #f1c2c2; background:#fff5f5; color:#b42318; padding:6px 8px; border-radius:6px; cursor:pointer;}
+    .cart-sheet__label{ font-size:12px; color:var(--muted); margin-top:6px; }
+    .cart-sheet__comment{ width:100%; min-height:84px; background:#ffffff; color:#111; border:1px solid var(--line); border-radius:10px; padding:10px; }
     .cart-sheet__footer{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:10px;}
     .cart-sheet__total{ font-weight:800; font-size:16px;}
-    .cart-sheet__send{ background:#c8ff3d; color:#111; border:none; border-radius:12px; padding:12px 16px; font-weight:800; cursor:pointer;}
+    .cart-sheet__send{
+      background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:var(--btn);
+      border:none; border-radius:12px; padding:12px 16px; font-weight:800; cursor:pointer;
+      box-shadow:0 0 0 3px rgba(255,216,59,.25);
+    }
     .cart-sheet__send:disabled{ opacity:.5; cursor:not-allowed;}
   </style>
 
@@ -174,7 +206,8 @@
   <header class="ff-header">
     <div class="ff-header__inner">
       <span class="ff-logo-wrap">
-        <img src="./images/brand/forfriends-wordmark.png" alt="Для своих" class="ff-logo" width="360" height="112" decoding="async" />
+        <!-- оставляем тот же путь, чтобы не ломать деплой -->
+        <img src="./images/brand/forfriends-wordmark.png" alt="Для своих" class="ff-logo" width="320" height="96" decoding="async" />
       </span>
     </div>
   </header>
@@ -189,7 +222,7 @@
       <!-- Выпадающий список (мобилки) -->
       <select id="catSelect" class="cat-select only-mobile" aria-label="Категория">
         <option value="all" selected>Все</option>
-        <!-- Остальные опции даст app.js, когда применим патч 2 -->
+        <!-- Остальные опции подставит app.js -->
       </select>
     </div>
 
@@ -201,14 +234,17 @@
     <div class="modal__backdrop" data-close="pm" aria-hidden="true"></div>
     <div class="modal__panel" id="pm_panel" tabindex="-1">
       <button class="pm__close" data-close="pm" type="button" aria-label="Закрыть">Закрыть</button>
+
       <div class="pm__media"><img id="pm_photo" alt=""></div>
+
       <div class="pm__body">
         <div class="pm__title" id="pm_title"></div>
         <div class="pm__sku" id="pm_sku"></div>
         <div class="pm__price"><span id="pm_price"></span> ₽</div>
-        <div class="pm__desc" id="pm_desc"></div>
 
+        <div class="pm__section-title">Добавить</div>
         <textarea id="pm_comment" class="pm__comment" placeholder="Комментарий к позиции (необязательно)"></textarea>
+
         <div class="pm__actions">
           <!-- Левая (серая) -->
           <button id="pm_back" class="pm__btn" type="button" data-close="pm">Назад</button>
@@ -242,7 +278,7 @@
     </div>
   </div>
 
-  <!-- версия для сброса кеша -->
-  <script src="./app.js?v=9" defer></script>
+  <!-- Версия для сброса кеша -->
+  <script src="./app.js?v=10" defer></script>
 </body>
 </html>
