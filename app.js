@@ -90,11 +90,12 @@
     if (catSelect) {
       catSelect.innerHTML = '';
       for (const cat of cats) catSelect.add(new Option(cat, cat));
-      catSelect.addEventListener('change', e => {
+      // чтобы не плодить листенеры, снимаем старый и навешиваем заново через onChange
+      catSelect.onchange = (e) => {
         state.filter = e.target.value;
         syncCategoryUI();
         renderGrid();
-      });
+      };
     }
 
     syncCategoryUI();
@@ -127,33 +128,40 @@
       const img = card.querySelector('.photo');
       img.addEventListener('error', () => { img.style.opacity = '0'; });
 
-      card.querySelector('.btn').addEventListener('click', () => openProduct(p));
+      // кликается ТОЛЬКО кнопка
+      const btn = card.querySelector('.btn');
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openProduct(p);
+      });
+
       grid.appendChild(card);
     }
   }
 
   // ===== Product modal =====
-  const modal = qs('#productModal');
+  const modal = document.getElementById('productModal');
   const pm = {
-    photo:   qs('#pm_photo'),
-    title:   qs('#pm_title'),
-    sku:     qs('#pm_sku'),
-    price:   qs('#pm_price'),
-    desc:    qs('#pm_desc'),
-    comment: qs('#pm_comment'),
-    add:     qs('#pm_add'),
-    back:    qs('#pm_back'),
-    panel:   qs('#pm_panel'),
+    photo:   modal.querySelector('#pm_photo'),
+    title:   modal.querySelector('#pm_title'),
+    sku:     modal.querySelector('#pm_sku'),
+    price:   modal.querySelector('#pm_price'),
+    desc:    modal.querySelector('#pm_desc'),     // может отсутствовать — это ок
+    comment: modal.querySelector('#pm_comment'),
+    add:     modal.querySelector('#pm_add'),
+    back:    modal.querySelector('#pm_back'),
+    panel:   modal.querySelector('#pm_panel'),
   };
 
   function openProduct(p) {
     state.current = p;
-    pm.photo.src = p.photo || '';
-    pm.title.textContent = p.title || '';
-    pm.sku.textContent   = p.id ?? '';
-    pm.price.textContent = fmt(p.price || 0);
-    pm.desc.textContent  = p.desc || '';
-    pm.comment.value     = '';
+    if (pm.photo) pm.photo.src = p.photo || '';
+    if (pm.title) pm.title.textContent = p.title || '';
+    if (pm.sku)   pm.sku.textContent   = p.id ?? '';
+    if (pm.price) pm.price.textContent = fmt(p.price || 0);
+    if (pm.desc)  pm.desc.textContent  = p.desc || '';
+    if (pm.comment) pm.comment.value   = '';
+
     modal.classList.add('open');
     modal.setAttribute('aria-hidden','false');
     pm.panel?.focus?.();
@@ -173,12 +181,12 @@
     if (found) found.qty += 1;
     else state.cart.push({ id: p.id, title: p.title, price: Number(p.price)||0, qty: 1 });
 
-    const c = pm.comment.value.trim();
+    const c = pm.comment?.value?.trim();
     if (c) (state.cart.find(i=>i.id===p.id) || {}).comment = c;
 
     saveCart();
     try { tg?.HapticFeedback?.impactOccurred?.('light'); } catch {}
-    pm.add.classList.add('shake'); setTimeout(()=>pm.add.classList.remove('shake'), 300);
+    pm.add?.classList.add('shake'); setTimeout(()=>pm.add?.classList.remove('shake'), 300);
   });
 
   // ===== Cart FAB & sheet =====
