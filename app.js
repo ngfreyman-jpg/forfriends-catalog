@@ -22,10 +22,10 @@
   const CART_KEY = 'ff_cart_v2';
 
   const state = {
-    categories: [],
+    categories: [],       // уже содержит "Все" один раз
     products: [],
     filter: 'Все',
-    cart: loadCart(),   // [{id,title,price,qty,comment?}]
+    cart: loadCart(),     // [{id,title,price,qty,comment?}]
     current: null
   };
 
@@ -48,7 +48,7 @@
   const catSelect = qs('#catSelect');
 
   function syncCategoryUI() {
-    // активная кнопка
+    // активная кнопка в табах
     if (tabs) {
       qsa('.tab', tabs).forEach(b => {
         const active = b.dataset.cat === state.filter;
@@ -60,16 +60,14 @@
     if (catSelect && catSelect.value !== state.filter) {
       // если по какой-то причине нет опции — добавим
       const exist = [...catSelect.options].some(o => o.value === state.filter);
-      if (!exist) {
-        const opt = new Option(state.filter, state.filter);
-        catSelect.add(opt);
-      }
+      if (!exist) catSelect.add(new Option(state.filter, state.filter));
       catSelect.value = state.filter;
     }
   }
 
   function renderCategories() {
-    const cats = ['Все', ...state.categories.filter(Boolean)];
+    const cats = [...state.categories]; // уже без дублей и с "Все" один раз
+
     // Табы
     if (tabs) {
       tabs.innerHTML = '';
@@ -87,18 +85,18 @@
         tabs.appendChild(b);
       }
     }
+
     // Select
     if (catSelect) {
       catSelect.innerHTML = '';
-      for (const cat of cats) {
-        catSelect.add(new Option(cat, cat));
-      }
+      for (const cat of cats) catSelect.add(new Option(cat, cat));
       catSelect.addEventListener('change', e => {
         state.filter = e.target.value;
         syncCategoryUI();
         renderGrid();
-      }, { once: true }); // делегируем дальше через syncCategoryUI
+      });
     }
+
     syncCategoryUI();
   }
 
@@ -125,6 +123,10 @@
         </div>
         <button class="btn" type="button">Открыть</button>
       `;
+      // подстраховка по изображениям
+      const img = card.querySelector('.photo');
+      img.addEventListener('error', () => { img.style.opacity = '0'; });
+
       card.querySelector('.btn').addEventListener('click', () => openProduct(p));
       grid.appendChild(card);
     }
@@ -284,12 +286,14 @@
     }
     // фильтр дублей/пустых
     const set = new Set(arr.map(String).filter(Boolean));
-    return [...set];
+    const list = [...set];
+    // гарантируем "Все" один раз
+    if (!list.includes('Все')) list.unshift('Все');
+    return list;
   }
 
   function normalizeProducts(raw) {
     let arr = Array.isArray(raw) ? raw : Array.isArray(raw.items) ? raw.items : [];
-    // приводим к минимально необходимому виду
     arr = arr.map(x => ({
       id:      x.id ?? x.sku ?? '',
       title:   x.title ?? x.name ?? '',
@@ -320,8 +324,7 @@
       }
 
       state.categories = cats;
-      // Валидируем фильтр + "Все"
-      if (!state.categories.includes('Все')) state.categories.unshift('Все');
+      // валидируем выбранный фильтр
       if (!state.categories.includes(state.filter)) state.filter = 'Все';
 
       state.products = prods;
