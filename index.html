@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ру">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -196,6 +196,71 @@
       box-shadow:0 0 0 3px rgba(255,216,59,.25);
     }
     .cart-sheet__send:disabled{ opacity:.5; cursor:not-allowed;}
+
+    /* ======== ПАТЧ: полировка визуала, фокусы, липкий футер, улучшенный FAB ======== */
+    :root{
+      --line-strong:#DBDEE6;
+      --shadow-soft:0 10px 26px rgba(17,24,39,.08);
+      --shadow-raise:0 14px 36px rgba(17,24,39,.12);
+      --focus:0 0 0 3px rgba(255,216,77,.45);
+    }
+    .card{
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+      border-color: var(--line);
+      box-shadow: var(--shadow-soft);
+    }
+    .card:hover{
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-raise);
+      border-color: var(--line-strong);
+    }
+    .card .media > img{ transition: transform .25s ease; }
+    .card:hover .media > img{ transform: scale(1.02); }
+
+    .btn{ transition: background-color .15s ease, border-color .15s ease, transform .06s ease; }
+    .btn:active{ transform: translateY(1px); }
+    .btn:focus-visible{ outline:none; box-shadow: var(--focus); }
+    .pm__btn{ transition: background-color .15s ease, border-color .15s ease, transform .06s ease; }
+    .pm__btn--primary:hover{ filter: brightness(0.98); }
+    .pm__btn:active{ transform: translateY(1px); }
+
+    .tab{ border-color: var(--line); background:#EFF2F6; }
+    .tab.active{
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      color:#111827; border-color:transparent; box-shadow: var(--focus);
+    }
+
+    .cat-select:focus{ box-shadow: var(--focus); border-color: transparent; }
+
+    .modal__backdrop{
+      background: rgba(17,24,39,.45);
+      backdrop-filter: blur(4px);
+    }
+    .pm__body{ display: grid; gap: 12px; }
+    .pm__actions{
+      position: sticky; bottom: 0; padding-top: 8px;
+      background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 28%);
+      border-top: 1px solid var(--line);
+    }
+
+    .pm__comment::placeholder{ color: #9AA3AF; }
+    .pm__comment:focus{ outline:none; box-shadow: var(--focus); border-color: transparent; }
+
+    .cart-fab{
+      padding: 12px 16px;
+      box-shadow: 0 12px 28px rgba(17,24,39,.16);
+      transform: translateZ(0);
+      bottom: calc(16px + env(safe-area-inset-bottom, 0));
+      transition: transform .06s ease, box-shadow .18s ease;
+    }
+    .cart-fab:active{ transform: translateY(1px); }
+
+    .cart-sheet__panel{ box-shadow: var(--shadow-raise); }
+    .cart-item{ border-bottom: 1px dashed var(--line-strong); }
+    .cart-btn{ background:#fff; border-color: var(--line); }
+    .cart-btn:focus-visible{ box-shadow: var(--focus); outline:none; }
+    .cart-remove{ border-color:#F3C3C3; background:#FFF6F6; }
+    @media (max-width: 380px){ #grid{ gap:14px; } }
   </style>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -206,7 +271,6 @@
   <header class="ff-header">
     <div class="ff-header__inner">
       <span class="ff-logo-wrap">
-        <!-- оставляем тот же путь, чтобы не ломать деплой -->
         <img src="./images/brand/forfriends-wordmark.png" alt="Для своих" class="ff-logo" width="320" height="96" decoding="async" />
       </span>
     </div>
@@ -222,7 +286,6 @@
       <!-- Выпадающий список (мобилки) -->
       <select id="catSelect" class="cat-select only-mobile" aria-label="Категория">
         <option value="all" selected>Все</option>
-        <!-- Остальные опции подставит app.js -->
       </select>
     </div>
 
@@ -246,9 +309,7 @@
         <textarea id="pm_comment" class="pm__comment" placeholder="Комментарий к позиции (необязательно)"></textarea>
 
         <div class="pm__actions">
-          <!-- Левая (серая) -->
           <button id="pm_back" class="pm__btn" type="button" data-close="pm">Назад</button>
-          <!-- Правая (акцентная) -->
           <button id="pm_add" class="pm__btn pm__btn--primary" type="button">Добавить</button>
         </div>
       </div>
@@ -266,7 +327,7 @@
         <button id="cartClose" class="cart-sheet__x" aria-label="Закрыть">✕</button>
       </div>
 
-      <div id="cartList" class="cart-sheet__list"><!-- позиции --></div>
+      <div id="cartList" class="cart-sheet__list"></div>
 
       <label class="cart-sheet__label" for="cartComment">Комментарий к заказу</label>
       <textarea id="cartComment" class="cart-sheet__comment" placeholder="Размер, цвет, адрес, время и т. п."></textarea>
