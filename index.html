@@ -43,7 +43,7 @@
       font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     }
 
-    /* ===== Header (новый wordmark) ===== */
+    /* ===== Header (текстовый wordmark + капсула STORE) ===== */
     .ff-header{
       position:sticky; top:0; z-index:50;
       backdrop-filter:saturate(180%) blur(8px);
@@ -55,8 +55,8 @@
       display:flex; align-items:center; justify-content:center;
     }
     .brand{
-      position:relative; display:inline-flex; align-items:center; gap:10px;
-      padding:6px 10px; border-radius:12px;
+      position:relative; display:inline-flex; align-items:center; gap:12px;
+      padding:6px 12px; border-radius:12px;
       font-weight:900; letter-spacing:.08em; text-transform:uppercase;
       color:#111827; font-size:28px; line-height:1;
       user-select:none; text-decoration:none;
@@ -66,6 +66,28 @@
       content:""; width:8px; height:8px; border-radius:50%;
       background:var(--accent-2);
       box-shadow:0 0 0 3px rgba(255,216,59,.20);
+    }
+    .brand__text{ white-space:nowrap; }
+
+    .brand__badge{
+      display:inline-block; white-space:nowrap;
+      padding:6px 12px; border-radius:999px;
+      font:800 12px/1 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      letter-spacing:.06em;
+      color:var(--btn);
+      background:linear-gradient(90deg,var(--accent),var(--accent-2));
+      box-shadow:0 8px 18px rgba(255,216,59,.28);
+      transform: translateZ(0);
+    }
+
+    /* ресайз шапки на узких */
+    @media (max-width: 480px){
+      .brand{ font-size:24px; letter-spacing:.07em; padding:6px 10px; gap:10px; }
+      .brand__badge{ padding:5px 10px; font-size:11px; }
+    }
+    @media (max-width: 360px){
+      .brand{ font-size:22px; letter-spacing:.06em; }
+      .brand__badge{ padding:4px 9px; font-size:10px; }
     }
 
     .wrap{max-width:1100px;margin:0 auto;padding:14px 18px}
@@ -233,11 +255,12 @@
 </head>
 <body>
 
-  <!-- Хедер: строгий wordmark из текста -->
+  <!-- Хедер: текстовый wordmark + капсула STORE -->
   <header class="ff-header">
     <div class="ff-header__inner">
       <a href="#" class="brand" aria-label="Для своих — каталог">
-        ДЛЯ СВОИХ
+        <span class="brand__text">ДЛЯ&nbsp;СВОИХ</span>
+        <span class="brand__badge" aria-hidden="true">STORE</span>
       </a>
     </div>
   </header>
