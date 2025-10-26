@@ -21,7 +21,7 @@
     body{ margin:0; background:var(--bg); color:var(--fg);
       font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
 
-    /* ===== Header: только логотип ===== */
+    /* ===== Header: логотип ===== */
     .ff-header{
       position:sticky; top:0; z-index:50; backdrop-filter:blur(8px);
       background:linear-gradient(180deg,rgba(16,18,23,.75),rgba(16,18,23,.35));
@@ -51,8 +51,10 @@
     .wrap{max-width:1100px;margin:0 auto;padding:14px 18px}
 
     /* ===== Категории ===== */
-    .filters{ display:flex; align-items:center; gap:8px; margin:10px 0 8px; }
-    .filters__label{ color:var(--muted); font-size:12px; }
+    .filters{ display:flex; align-items:center; gap:10px; margin:10px 0 8px; }
+    .filters__label{ color:var(--muted); font-size:12px; white-space:nowrap; }
+
+    /* Вариант 1 — табы (десктоп) */
     .tabs{display:flex;gap:8px;flex-wrap:wrap}
     .tab{
       background:#151a22;border:1px solid var(--line);color:#cfd6e4;
@@ -63,6 +65,24 @@
       color:#0b0f14;background:linear-gradient(90deg,var(--acid),var(--acid-2));
       border-color:transparent;
       box-shadow:0 0 0 4px rgba(215,255,63,.12),0 8px 24px rgba(215,255,63,.18);
+    }
+
+    /* Вариант 2 — select (мобилки) */
+    .cat-select{
+      appearance:none; -webkit-appearance:none; -moz-appearance:none;
+      background:#151a22 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cfd6e4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 10px center/18px;
+      border:1px solid var(--line); color:#e6ebf5; border-radius:12px;
+      padding:10px 38px 10px 12px; font-weight:600;
+    }
+    .cat-select:focus{ outline:none; border-color:#324059; }
+
+    /* Переключение видимости */
+    .only-desktop{ display:flex; }
+    .only-mobile{ display:none; }
+    @media (max-width: 640px){
+      .only-desktop{ display:none; }
+      .only-mobile{ display:block; }
+      .filters{ gap:8px; }
     }
 
     /* ===== Сетка карточек ===== */
@@ -162,7 +182,15 @@
   <div class="wrap">
     <div class="filters">
       <span class="filters__label">Категория</span>
-      <div id="tabs" class="tabs" role="tablist" aria-label="Категории"></div>
+
+      <!-- Горизонтальные табы (десктоп) -->
+      <div id="tabs" class="tabs only-desktop" role="tablist" aria-label="Категории"></div>
+
+      <!-- Выпадающий список (мобилки) -->
+      <select id="catSelect" class="cat-select only-mobile" aria-label="Категория">
+        <option value="all" selected>Все</option>
+        <!-- Остальные опции даст app.js, когда применим патч 2 -->
+      </select>
     </div>
 
     <main id="grid"></main>
@@ -182,10 +210,10 @@
 
         <textarea id="pm_comment" class="pm__comment" placeholder="Комментарий к позиции (необязательно)"></textarea>
         <div class="pm__actions">
-  <!-- Серая, слева -->
-  <button id="pm_back" class="pm__btn" type="button" data-close="pm">Назад</button>
-  <!-- Акцентная, справа -->
-  <button id="pm_add" class="pm__btn pm__btn--primary" type="button">Добавить</button>
+          <!-- Левая (серая) -->
+          <button id="pm_back" class="pm__btn" type="button" data-close="pm">Назад</button>
+          <!-- Правая (акцентная) -->
+          <button id="pm_add" class="pm__btn pm__btn--primary" type="button">Добавить</button>
         </div>
       </div>
     </div>
