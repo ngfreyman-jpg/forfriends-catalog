@@ -1,10 +1,14 @@
 /* ForFriends — каталог с корзиной (отправка из корзины)
-   ДАННЫЕ: поддерживаются варианты
-   - ./data/categories.json            -> ["Все","Категория 1", ...] ИЛИ {items:[...]} ИЛИ массив объектов {name|title}
-   - ./data/products.json              -> [{id,title,price,category,photo,desc}] ИЛИ {items:[...]}
-   Fallback: если в ./data нет, берём из ./catalog (на случай старой структуры).
-*/
+   ПАТЧ: категории рендерим в двух вариантах:
+   - десктопные табы (#catTabs / #tabs)
+   - мобильный <select id="catSelect">
+   Выбор синхронизирован в обе стороны.
 
+   ДАННЫЕ:
+   - ./data/categories.json  -> ["Все","Категория 1", ...] ИЛИ {items:[...]} ИЛИ массив объектов {name|title}
+   - ./data/products.json    -> [{id,title,price,category,photo,desc}] ИЛИ {items:[...]}
+   Fallback: если в ./data нет, пробуем ./catalog (на случай старой структуры).
+*/
 (() => {
   // ===== Telegram WebApp =====
   const tg = window.Telegram?.WebApp;
@@ -39,19 +43,63 @@
     return {qty, sum};
   }
 
-  // ===== Categories render =====
-  const tabs = qs('#tabs');
-  function renderCategories() {
-    tabs.innerHTML = '';
-    const cats = ['Все', ...state.categories.filter(Boolean)];
-    for (const cat of cats) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'tab' + (state.filter===cat ? ' active' : '');
-      b.textContent = cat;
-      b.addEventListener('click', () => { state.filter = cat; renderGrid(); });
-      tabs.appendChild(b);
+  // ===== Categories (tabs + select) =====
+  const tabs      = qs('#catTabs') || qs('#tabs');  // поддержка старого id
+  const catSelect = qs('#catSelect');
+
+  function syncCategoryUI() {
+    // активная кнопка
+    if (tabs) {
+      qsa('.tab', tabs).forEach(b => {
+        const active = b.dataset.cat === state.filter;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
     }
+    // выбранное значение в <select>
+    if (catSelect && catSelect.value !== state.filter) {
+      // если по какой-то причине нет опции — добавим
+      const exist = [...catSelect.options].some(o => o.value === state.filter);
+      if (!exist) {
+        const opt = new Option(state.filter, state.filter);
+        catSelect.add(opt);
+      }
+      catSelect.value = state.filter;
+    }
+  }
+
+  function renderCategories() {
+    const cats = ['Все', ...state.categories.filter(Boolean)];
+    // Табы
+    if (tabs) {
+      tabs.innerHTML = '';
+      for (const cat of cats) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tab';
+        b.dataset.cat = cat;
+        b.textContent = cat;
+        b.addEventListener('click', () => {
+          state.filter = cat;
+          syncCategoryUI();
+          renderGrid();
+        });
+        tabs.appendChild(b);
+      }
+    }
+    // Select
+    if (catSelect) {
+      catSelect.innerHTML = '';
+      for (const cat of cats) {
+        catSelect.add(new Option(cat, cat));
+      }
+      catSelect.addEventListener('change', e => {
+        state.filter = e.target.value;
+        syncCategoryUI();
+        renderGrid();
+      }, { once: true }); // делегируем дальше через syncCategoryUI
+    }
+    syncCategoryUI();
   }
 
   // ===== Grid render =====
@@ -272,9 +320,12 @@
       }
 
       state.categories = cats;
+      // Валидируем фильтр + "Все"
       if (!state.categories.includes('Все')) state.categories.unshift('Все');
+      if (!state.categories.includes(state.filter)) state.filter = 'Все';
 
       state.products = prods;
+
       renderCategories();
       renderGrid();
 
