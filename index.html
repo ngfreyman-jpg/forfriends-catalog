@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ру">
+<html lang="ru">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -8,26 +8,32 @@
   <!-- Шрифты -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 
   <style>
     :root{
-      /* Светлая тема по мокапу */
-      --bg:#f6f7f9;           /* общий фон */
-      --fg:#0b0f14;          /* основной текст */
-      --muted:#6b7280;       /* вторичный текст */
-      --line:#e6e8ee;        /* границы/разделители */
-      --card:#ffffff;        /* фон карточек/панелей */
+      /* Светлая тема */
+      --bg:#f6f7f9;
+      --fg:#0b0f14;
+      --muted:#6b7280;
+      --line:#e6e8ee;
+      --card:#ffffff;
       --shadow:0 10px 30px rgba(24,32,56,.08);
 
-      --chip:#eff2f6;        /* фон чипов/кнопок по умолчанию */
+      --chip:#eff2f6;
       --chip-fg:#1f2937;
-      --chip-active:#ffd83b; /* жёлтая акцентная (ценник/актив) */
+      --chip-active:#ffd83b;
       --chip-active-2:#ffc82a;
 
-      --btn:#111827;         /* тёмный текст на жёлтом */
+      --btn:#111827;
       --accent:#ffd83b;
       --accent-2:#ffc82a;
+
+      /* Усиленные тени/фокусы */
+      --line-strong:#DBDEE6;
+      --shadow-soft:0 10px 26px rgba(17,24,39,.08);
+      --shadow-raise:0 14px 36px rgba(17,24,39,.12);
+      --focus:0 0 0 3px rgba(255,216,77,.45);
     }
 
     *{box-sizing:border-box}
@@ -37,7 +43,7 @@
       font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
     }
 
-    /* ===== Header ===== */
+    /* ===== Header (новый wordmark) ===== */
     .ff-header{
       position:sticky; top:0; z-index:50;
       backdrop-filter:saturate(180%) blur(8px);
@@ -48,10 +54,18 @@
       max-width:1100px; margin:0 auto; padding:14px 18px;
       display:flex; align-items:center; justify-content:center;
     }
-    .ff-logo-wrap{ position:relative; display:inline-flex; }
-    .ff-logo{
-      height:54px; width:auto; object-fit:contain;
+    .brand{
+      position:relative; display:inline-flex; align-items:center; gap:10px;
+      padding:6px 10px; border-radius:12px;
+      font-weight:900; letter-spacing:.08em; text-transform:uppercase;
+      color:#111827; font-size:28px; line-height:1;
+      user-select:none; text-decoration:none;
       filter:drop-shadow(0 2px 6px rgba(0,0,0,.04));
+    }
+    .brand::before,.brand::after{
+      content:""; width:8px; height:8px; border-radius:50%;
+      background:var(--accent-2);
+      box-shadow:0 0 0 3px rgba(255,216,59,.20);
     }
 
     .wrap{max-width:1100px;margin:0 auto;padding:14px 18px}
@@ -60,10 +74,9 @@
     .filters{ display:flex; align-items:center; gap:12px; margin:6px 0 12px; }
     .filters__label{ color:var(--muted); font-size:12px; white-space:nowrap; }
 
-    /* Табы (десктоп) */
     .tabs{display:flex;gap:8px;flex-wrap:wrap}
     .tab{
-      background:var(--chip); color:var(--chip-fg);
+      background:#EFF2F6; color:var(--chip-fg);
       border:1px solid var(--line);
       border-radius:999px; padding:8px 14px; cursor:pointer;
       transition:.18s; font-weight:600;
@@ -73,7 +86,7 @@
       color:var(--btn);
       background:linear-gradient(90deg,var(--chip-active),var(--chip-active-2));
       border-color:transparent;
-      box-shadow:0 0 0 3px rgba(255,216,59,.25);
+      box-shadow:var(--focus);
     }
 
     /* Select (мобилки) */
@@ -83,7 +96,7 @@
       border:1px solid var(--line); color:var(--chip-fg); border-radius:12px;
       padding:10px 38px 10px 12px; font-weight:600;
     }
-    .cat-select:focus{ outline:none; box-shadow:0 0 0 3px rgba(31,41,55,.08) }
+    .cat-select:focus{ outline:none; box-shadow:var(--focus) }
 
     .only-desktop{ display:flex; }
     .only-mobile{ display:none; }
@@ -101,12 +114,13 @@
     .card{
       background:var(--card);
       border:1px solid var(--line); border-radius:20px; overflow:hidden;
-      display:flex; flex-direction:column; box-shadow:var(--shadow);
-      transition:transform .18s ease, box-shadow .18s ease;
+      display:flex; flex-direction:column; box-shadow:var(--shadow-soft);
+      transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }
-    .card:hover{ transform:translateY(-2px); box-shadow:0 14px 36px rgba(24,32,56,.12); }
+    .card:hover{ transform:translateY(-2px); box-shadow:var(--shadow-raise); border-color:var(--line-strong); }
     .card .media{ position:relative;width:100%; padding-top:125%; background:#f1f3f6; border-bottom:1px solid var(--line); }
-    .card .media > img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+    .card .media > img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition: transform .25s ease; }
+    .card:hover .media > img{ transform: scale(1.02); }
     .card .info{ padding:14px 14px 10px; display:flex; flex-direction:column; gap:8px; flex:1 }
     .card .title{ font-weight:700; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.4em; text-align:center;}
     .card .sku{ color:var(--muted); font-size:12px; text-align:center;}
@@ -117,15 +131,18 @@
     .btn{
       background:#ffffff; color:#1f2937; border:1px solid var(--line);
       border-radius:12px; padding:10px 12px; margin:12px; cursor:pointer; font-weight:700;
+      transition: background-color .15s ease, border-color .15s ease, transform .06s ease;
     }
     .btn:hover{ background:#fafafa }
+    .btn:active{ transform: translateY(1px); }
+    .btn:focus-visible{ outline:none; box-shadow:var(--focus); }
 
     .empty{ grid-column:1/-1;text-align:center;color:var(--muted); padding:24px;border:1px dashed var(--line);border-radius:14px;background:#fff; }
 
-    /* ===== Модалка товара — светлая карточка с секцией «Добавить» ===== */
+    /* ===== Модалка товара ===== */
     .modal{ position:fixed; inset:0; z-index:70; display:none; }
     .modal.open{ display:block; }
-    .modal__backdrop{ position:absolute; inset:0; background:rgba(0,0,0,.45); }
+    .modal__backdrop{ position:absolute; inset:0; background:rgba(17,24,39,.45); backdrop-filter: blur(4px); }
     .modal__panel{
       position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
       width:min(94vw,740px); max-height:90vh; overflow:auto;
@@ -144,16 +161,24 @@
       width:100%; min-height:84px; background:#ffffff; color:var(--fg);
       border:1px solid var(--line); border-radius:12px; padding:10px 12px;
     }
-    .pm__actions{ display:flex; gap:10px; }
+    .pm__actions{
+      display:flex; gap:10px;
+      position: sticky; bottom: 0; padding-top: 8px;
+      background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 28%);
+      border-top: 1px solid var(--line);
+    }
     .pm__btn{
       flex:1; padding:12px; border-radius:12px; font-weight:800; cursor:pointer;
       border:1px solid var(--line); background:#fff; color:#111827;
+      transition: background-color .15s ease, border-color .15s ease, transform .06s ease;
     }
     .pm__btn--primary{
       background:linear-gradient(90deg,var(--accent),var(--accent-2));
       color:var(--btn); border-color:transparent;
-      box-shadow:0 0 0 3px rgba(255,216,59,.25);
+      box-shadow:var(--focus);
     }
+    .pm__btn--primary:hover{ filter: brightness(0.98); }
+    .pm__btn:active{ transform: translateY(1px); }
     .pm__close{
       position:absolute; top:10px; right:10px;
       background:#fff; border:1px solid var(--line); color:#111827;
@@ -162,28 +187,32 @@
 
     /* ===== FAB корзины + оверлей ===== */
     .cart-fab{
-      position:fixed; right:16px; bottom:16px; z-index:65;
+      position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom, 0)); z-index:65;
       background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:var(--btn);
       border:none; border-radius:999px;
-      padding:10px 14px; font-weight:800; box-shadow:0 10px 24px rgba(24,32,56,.16);
-      cursor:pointer;
+      padding:12px 16px; font-weight:800; box-shadow:0 12px 28px rgba(17,24,39,.16);
+      cursor:pointer; transform: translateZ(0);
+      transition: transform .06s ease, box-shadow .18s ease;
     }
+    .cart-fab:active{ transform: translateY(1px); }
+
     .cart-sheet{ position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:66; display:none; }
     .cart-sheet[aria-hidden="false"]{ display:block; }
     .cart-sheet__panel{
       position:absolute; right:0; top:0; bottom:0; width:min(520px,100%);
       background:#ffffff; color:#111827; display:flex; flex-direction:column;
-      padding:16px 16px 12px; border-left:1px solid var(--line); box-shadow:var(--shadow);
+      padding:16px 16px 12px; border-left:1px solid var(--line); box-shadow:var(--shadow-raise);
     }
     .cart-sheet__head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
     .cart-sheet__title{ font-size:20px; margin:0; font-weight:800;}
     .cart-sheet__x{ background:#fff; border:1px solid var(--line); color:#111827; border-radius:8px; padding:6px 10px; cursor:pointer; }
     .cart-sheet__list{ flex:1; overflow:auto; border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin:8px 0;}
-    .cart-item{ display:grid; grid-template-columns:1fr auto; gap:8px; padding:10px 0; border-bottom:1px dashed var(--line);}
+    .cart-item{ display:grid; grid-template-columns:1fr auto; gap:8px; padding:10px 0; border-bottom:1px dashed var(--line-strong);}
     .cart-item__title{ font-weight:700;}
     .cart-item__meta{ color:var(--muted); font-size:12px;}
     .cart-item__controls{ display:flex; align-items:center; gap:8px;}
     .cart-btn{ width:28px; height:28px; border-radius:6px; border:1px solid var(--line); background:#fff; color:#111; cursor:pointer;}
+    .cart-btn:focus-visible{ box-shadow:var(--focus); outline:none; }
     .cart-qty{ min-width:28px; text-align:center;}
     .cart-remove{ border:1px solid #f1c2c2; background:#fff5f5; color:#b42318; padding:6px 8px; border-radius:6px; cursor:pointer;}
     .cart-sheet__label{ font-size:12px; color:var(--muted); margin-top:6px; }
@@ -193,73 +222,10 @@
     .cart-sheet__send{
       background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:var(--btn);
       border:none; border-radius:12px; padding:12px 16px; font-weight:800; cursor:pointer;
-      box-shadow:0 0 0 3px rgba(255,216,59,.25);
+      box-shadow:var(--focus);
     }
     .cart-sheet__send:disabled{ opacity:.5; cursor:not-allowed;}
 
-    /* ======== ПАТЧ: полировка визуала, фокусы, липкий футер, улучшенный FAB ======== */
-    :root{
-      --line-strong:#DBDEE6;
-      --shadow-soft:0 10px 26px rgba(17,24,39,.08);
-      --shadow-raise:0 14px 36px rgba(17,24,39,.12);
-      --focus:0 0 0 3px rgba(255,216,77,.45);
-    }
-    .card{
-      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-      border-color: var(--line);
-      box-shadow: var(--shadow-soft);
-    }
-    .card:hover{
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-raise);
-      border-color: var(--line-strong);
-    }
-    .card .media > img{ transition: transform .25s ease; }
-    .card:hover .media > img{ transform: scale(1.02); }
-
-    .btn{ transition: background-color .15s ease, border-color .15s ease, transform .06s ease; }
-    .btn:active{ transform: translateY(1px); }
-    .btn:focus-visible{ outline:none; box-shadow: var(--focus); }
-    .pm__btn{ transition: background-color .15s ease, border-color .15s ease, transform .06s ease; }
-    .pm__btn--primary:hover{ filter: brightness(0.98); }
-    .pm__btn:active{ transform: translateY(1px); }
-
-    .tab{ border-color: var(--line); background:#EFF2F6; }
-    .tab.active{
-      background:linear-gradient(90deg,var(--accent),var(--accent-2));
-      color:#111827; border-color:transparent; box-shadow: var(--focus);
-    }
-
-    .cat-select:focus{ box-shadow: var(--focus); border-color: transparent; }
-
-    .modal__backdrop{
-      background: rgba(17,24,39,.45);
-      backdrop-filter: blur(4px);
-    }
-    .pm__body{ display: grid; gap: 12px; }
-    .pm__actions{
-      position: sticky; bottom: 0; padding-top: 8px;
-      background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 28%);
-      border-top: 1px solid var(--line);
-    }
-
-    .pm__comment::placeholder{ color: #9AA3AF; }
-    .pm__comment:focus{ outline:none; box-shadow: var(--focus); border-color: transparent; }
-
-    .cart-fab{
-      padding: 12px 16px;
-      box-shadow: 0 12px 28px rgba(17,24,39,.16);
-      transform: translateZ(0);
-      bottom: calc(16px + env(safe-area-inset-bottom, 0));
-      transition: transform .06s ease, box-shadow .18s ease;
-    }
-    .cart-fab:active{ transform: translateY(1px); }
-
-    .cart-sheet__panel{ box-shadow: var(--shadow-raise); }
-    .cart-item{ border-bottom: 1px dashed var(--line-strong); }
-    .cart-btn{ background:#fff; border-color: var(--line); }
-    .cart-btn:focus-visible{ box-shadow: var(--focus); outline:none; }
-    .cart-remove{ border-color:#F3C3C3; background:#FFF6F6; }
     @media (max-width: 380px){ #grid{ gap:14px; } }
   </style>
 
@@ -267,12 +233,12 @@
 </head>
 <body>
 
-  <!-- Хедер -->
+  <!-- Хедер: строгий wordmark из текста -->
   <header class="ff-header">
     <div class="ff-header__inner">
-      <span class="ff-logo-wrap">
-        <img src="./images/brand/forfriends-wordmark.png" alt="Для своих" class="ff-logo" width="320" height="96" decoding="async" />
-      </span>
+      <a href="#" class="brand" aria-label="Для своих — каталог">
+        ДЛЯ СВОИХ
+      </a>
     </div>
   </header>
 
