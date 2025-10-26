@@ -17,27 +17,6 @@
     console.warn('[TG] init failed', e);
   }
 
-  // === self-check: показать, что мы внутри Telegram WebApp ===
-  try {
-    if (tg?.initDataUnsafe?.user) {
-      tg.showAlert?.(`WebApp ОК, user id: ${tg.initDataUnsafe.user.id}`);
-    }
-  } catch {}
-
-  // === DEBUG: ?debug=1 → отправить тестовый ping в бота (окно НЕ закрываем)
-  (function debugAutoSend() {
-    try {
-      const sp = new URLSearchParams(location.search);
-      if (sp.get('debug') === '1' && tg?.sendData) {
-        const testPayload = { ping: 1, ts: Date.now(), user: tg.initDataUnsafe?.user?.id || null };
-        const js = JSON.stringify(testPayload);
-        console.log('[TG][DEBUG] sendData len=', js.length, 'payload=', testPayload);
-        tg.sendData(js);
-        tg.showAlert?.('Тестовый ping отправлен в бота (debug=1). Проверь логи и чат.');
-      }
-    } catch (e) { console.warn('debugAutoSend error', e); }
-  })();
-
   // === DOM refs ===
   const $grid  = document.getElementById("grid");
   const $tabs  = document.getElementById("tabs");
@@ -140,7 +119,8 @@
     if ($pmImg)   { $pmImg.src = photo; $pmImg.alt = product.title || 'Фото'; }
     if ($pmTitle) $pmTitle.textContent = product.title || '';
     if ($pmSku)   $pmSku.textContent   = product.id ? String(product.id) : '';
-    if ($pmPrice) $pmPrice.textContent = fmtPrice(product.price) + ' ₽';
+    // В модалке без повторного символа ₽ — он уже в HTML
+    if ($pmPrice) $pmPrice.textContent = fmtPrice(product.price);
     if ($pmDesc)  $pmDesc.textContent  = product.desc ? String(product.desc) : '';
     if ($pmComment) $pmComment.value = order.comment || '';
 
@@ -239,14 +219,13 @@
     $pmSubmit.textContent = 'Отправляем…';
 
     try {
-      tg.sendData(json);                                  // ← сюда ловит бот
+      tg.sendData(json);
       try { tg?.HapticFeedback?.notificationOccurred('success'); } catch {}
       tg?.showAlert?.('✅ Заказ отправлен. Проверьте ЛС бота.');
     } catch (e) {
       console.error('[TG] sendData error', e);
       tg?.showAlert?.('Не удалось отправить заказ. Попробуйте ещё раз.');
     } finally {
-      // возвращаем кнопку; окно НЕ закрываем
       setTimeout(() => {
         isSendingOrder = false;
         $pmSubmit.disabled = false;
