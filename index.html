@@ -207,6 +207,21 @@
       background:linear-gradient(90deg,var(--acid),var(--acid-2)); color:#0b0f14; border-color:transparent;
     }
     .pm__close{ position:absolute; top:10px; right:10px; background:#121923; border:1px solid #2a354a; color:#cfd6e4; border-radius:10px; padding:6px 10px; cursor:pointer;}
+
+    /* ===== Визуальный отклик при пустой корзине (shake) ===== */
+    .pm__btn.shake {
+      animation: ff-shake .28s linear 1;
+    }
+    @keyframes ff-shake {
+      10%  { transform: translateX(-2px); }
+      20%  { transform: translateX( 2px); }
+      30%  { transform: translateX(-2px); }
+      40%  { transform: translateX( 2px); }
+      50%  { transform: translateX(-2px); }
+      60%  { transform: translateX( 2px); }
+      80%  { transform: translateX(-1px); }
+      100% { transform: translateX(0); }
+    }
   </style>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
