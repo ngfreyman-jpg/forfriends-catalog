@@ -12,8 +12,8 @@ const CONFIG = {
   },
 
   sync: {
-    baseUrl: 'https://forfriends-sync-production.up.railway.app',
-    apiKey:  '056fad75ad5e57d293e57739ec70ceb3fba4967d1cd9d2fa64a9be15dbf95c20',
+    baseUrl: 'http://82.97.252.210:3000',
+    apiKey:  '313e46ab08ab2fefd61634210f537e82fc2055b6ab6b3bb8d0b222744ab39797',
     pollMs: 1500,
     timeoutMs: 20000,
     totalTimeoutMs: 180000,
